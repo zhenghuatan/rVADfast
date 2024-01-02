@@ -65,7 +65,7 @@ if __name__ == '__main__':
     while True:
        audPart = 'output'+ str(part)  
        record_to_file(audPart + '.wav')
-       cmd = 'python3' + " " + 'rVAD_fast.py' + " " + audPart +'.wav' + " " + audPart+'.txt'
+       cmd = 'python3' + " " + 'rVADfast.py' + " " + audPart +'.wav' + " " + audPart+'.txt'
        os.system(cmd)
        print('Result for audio chunk%d written' %(part))
        part = part + 1

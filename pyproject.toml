@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rVADfast"
+version = "0.0.3"
+description = "rVADfast - a fast and robust unsupervised VAD"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["VAD", "Speech", "Speech Processing"]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy >= 1.23.5",
+    "scipy >= 1.10.0",
+    "audiofile >= 1.1.1",
+    "tqdm >= 4.64.1"
+]
+authors = [
+    {name="Zheng-Hua Tan", email = "zt@es.aau.dk"},
+    {name="Achintya Kumar Sarkar"},
+    {name="Holger Severin Bovbjerg", email = "hsbo@es.aau.dk"}
+
+]
+maintainers = [
+    {name="Holger Severin Bovbjerg", email = "hsbo@es.aau.dk"},
+    {name="Zheng-Hua Tan", email = "zt@es.aau.dk"}
+]
+
+[project.scripts]
+rVAD_process = "rVADfast.process:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# include = ["rVADfast*"]
