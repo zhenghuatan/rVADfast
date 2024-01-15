@@ -137,10 +137,11 @@ def snre_highenergy(signal, n_frames, frame_length, frame_shift, energy_floor, p
 
     # Estimation of noise energy
     segment_length = 200
-    if np.less(n_frames, segment_length):
+    if n_frames <= segment_length:
         segment_length = n_frames
-
-    energy_min_smoothed = segmentwise_exponential_smooth(energy, segment_length)
+        energy_min_smoothed = np.nanpercentile(energy, 10, axis=-1)
+    else:
+        energy_min_smoothed = segmentwise_exponential_smooth(energy, segment_length)
 
     # Compute a posteriori SNR weighted energy difference
     snr_weighted_energy_diff = compute_snr_weighted_energy_diff(energy, energy_min_smoothed)
@@ -158,36 +159,6 @@ def snre_highenergy(signal, n_frames, frame_length, frame_shift, energy_floor, p
                              snr_weighted_energy_diff_smoothed_max * segment_threshold_factor)
 
     return high_energy
-    # # Block based processing to identify low energy frames.
-    #
-    #
-    #
-    # noise_segment = np.zeros(int(np.floor(n_frames / 1.6)))
-    #
-    # noise_frames = np.zeros((n_frames, 2))
-    # n_noise_frames = 0
-    #
-    # sign_vad = 0
-    # n_start = 0
-    # for i in range(n_frames):
-    #     if high_energy[i] and (sign_vad == 0):  # high energy segment
-    #         sign_vad = 1
-    #         n_start = i
-    #     elif (not high_energy[i] or (i == n_frames)) and (sign_vad == 1):  # low energy segment or last frame
-    #         sign_vad = 0
-    #         n_stop = i
-    #         if np.equal(sum(pitch_voiced[range(n_start, n_stop)]), 0):
-    #             noise_segment[range(int(np.round(n_start / 1.6)), int(np.floor(n_stop / 1.6)) + 1)] = 1
-    #             noise_frames[n_noise_frames, :] = np.array([(n_start - 1) * frame_shift + 1, n_stop * frame_shift])
-    #             n_noise_frames = n_noise_frames + 1
-    #
-    # noise_frames = noise_frames[:n_noise_frames + 1, ]
-    #
-    # # syn  from [0] index
-    # noise_frames = noise_frames - 1
-    # noise_segment = noise_segment[1:len(noise_segment)]
-    #
-    # return noise_frames, noise_segment, len(noise_frames)
 
 
 def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_voiced, vad_threshold):
@@ -392,7 +363,7 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
 
     # print vad_seg
 
-    # make one dimension array of (0/1) 
+    # make one dimension array of (0/1)
     xYY = np.zeros(n_frames, dtype="int64")
     for i in range(len(vad_seg)):
         k = range(vad_seg[i, 0], vad_seg[i, 1] + 1)

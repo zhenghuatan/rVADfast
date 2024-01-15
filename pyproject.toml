@@ -7,7 +7,7 @@ name = "rVADfast"
 version = "0.0.3"
 description = "rVADfast - a fast and robust unsupervised VAD"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 keywords = ["VAD", "Speech", "Speech Processing"]
 license = {text = "MIT"}
 classifiers = [
@@ -23,9 +23,8 @@ dependencies = [
 ]
 authors = [
     {name="Zheng-Hua Tan", email = "zt@es.aau.dk"},
-    {name="Achintya Kumar Sarkar"},
+    {name="Achintya Kumar Sarkar", email="sarkar.achintya@gmail.com"},
     {name="Holger Severin Bovbjerg", email = "hsbo@es.aau.dk"}
-
 ]
 maintainers = [
     {name="Holger Severin Bovbjerg", email = "hsbo@es.aau.dk"},

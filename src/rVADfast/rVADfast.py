@@ -15,8 +15,8 @@ from rVADfast import speechproc
 
 class rVADfast:
     def __init__(self, window_duration: float = 0.025, shift_duration: float = 0.01,
-                n_fft: int = 512, sft_threshold: float = 0.5, vad_threshold: float = 0.4,
-                energy_floor: float = np.exp(-50)):
+                 n_fft: int = 512, sft_threshold: float = 0.5, vad_threshold: float = 0.4,
+                 energy_floor: float = np.exp(-50)):
         self.window_duration = window_duration
         self.shift_duration = shift_duration
         self.n_fft = n_fft
