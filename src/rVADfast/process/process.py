@@ -45,13 +45,14 @@ def worker_function(file, save_folder, root_folder, vad):
     vad_labels, _ = vad(signal, sampling_rate)
     #TODO: Ideally, you should be able to provide settings like window duration and shift duration
     # to support non-deafault settings for rVAD.
-    vad_timestamps = frame_label_to_start_stop(vad_labels)*vad.shift_duration
+    vad_timestamps = frame_label_to_start_stop(vad_labels) * vad.shift_duration
     np.savetxt(save_path / save_file_name, vad_timestamps.astype(int),
-               fmt='%d', header='Speech Start Time, Speech End Time', delimiter=',')
+               fmt='%f1.3', header='Speech Start Time, Speech End Time', delimiter=',')
 
 
-def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav"):
-    vad = rVADfast()
+def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav",
+                       **rvad_kwargs):
+    vad = rVADfast(**rvad_kwargs)
     print(f"Scanning {root_folder} for files with {extension=}")
     filepaths = []
     for file in Path(root_folder).rglob("*." + extension):
@@ -65,8 +66,10 @@ def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "w
             pbar.update(1)
 
 
-def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1):
-    vad = rVADfast()
+def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1,
+                       **rvad_kwargs):
+    vad = rVADfast(**rvad_kwargs)
+
     print(f"Scanning {root_folder} for files with {extension=}")
     filepaths = []
     for file in Path(root_folder).rglob("*." + extension):
