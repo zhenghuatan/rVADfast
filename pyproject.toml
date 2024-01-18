@@ -36,7 +36,7 @@ maintainers = [
 ]
 
 [project.scripts]
-rVAD_process = "rVADfast.process:main"
+rVADfast_process = "rVADfast.process:main"
 
 [project.urls]  # Optional
 Homepage = "https://github.com/zhenghuatan/rVADfast/"

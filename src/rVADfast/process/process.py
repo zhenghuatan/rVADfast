@@ -37,6 +37,7 @@ def frame_label_to_start_stop(labels: np.ndarray):
 
     return start_stop_indices
 
+
 def trim_from_vad_timestamps(signal, sampling_rate, vad_timestamps):
     vad_start_end = np.floor(vad_timestamps * sampling_rate).astype(int)
     return np.concatenate([signal[start: end] for start, end in vad_start_end.T])
@@ -59,8 +60,8 @@ def worker_function(file, save_folder, root_folder, vad, trim_non_speech: bool =
                    fmt='%1.3f', header='Speech Start Time [s], Speech End Time [s]', delimiter=',')
 
 
-def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav", trim_non_speech: bool = False,
-                        **rvad_kwargs):
+def rVADfast_single_process(root_folder, save_folder: str = ".", extension: str = "wav", trim_non_speech: bool = False,
+                            **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
     print(f"Scanning {root_folder} for files with {extension=}...")
     filepaths = []
@@ -68,15 +69,16 @@ def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "w
         filepaths.append(file)
     print(f"Found {len(filepaths)} files.")
 
-    print("Starting VAD process")
-    with tqdm(total=len(filepaths), desc="Generating VAD labels", unit="files") as pbar:
+    print("Starting VAD.")
+    processing_message = "Trimming non-speech segments" if trim_non_speech else "Generating VAD labels"
+    with tqdm(total=len(filepaths), desc=processing_message, unit="files") as pbar:
         for file in filepaths:
             worker_function(file, save_folder, root_folder, vad, trim_non_speech)
             pbar.update(1)
 
 
-def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1,
-                       trim_non_speech: bool = False, **rvad_kwargs):
+def rVADfast_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1,
+                           trim_non_speech: bool = False, **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
 
     print(f"Scanning {root_folder} for files with {extension=}...")
@@ -85,7 +87,7 @@ def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wa
         filepaths.append(file)
     print(f"Found {len(filepaths)} files.")
 
-    print(f"Starting VAD multiprocessing pool with {n_workers=}")
+    print(f"Starting VAD using multiprocessing pool with {n_workers=}.")
     pool = multiprocessing.Pool(processes=n_workers)
     loader_fn = partial(worker_function, save_folder=save_folder, root_folder=root_folder, vad=vad,
                         trim_non_speech=trim_non_speech)
@@ -146,24 +148,24 @@ def main(argv=sys.argv):
     # TODO: Ideally, you should be able to provide settings like window duration and shift duration as kwarg
     # to support non-deafault settings for rVAD.
     if n_workers > 0:
-        rVAD_multi_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
-                           n_workers=n_workers,
-                           window_duration=arguments.window_duration,
-                           shift_duration=arguments.shift_duration,
-                           n_fft=arguments.n_fft,
-                           sft_threshold=arguments.sft_threshold,
-                           vad_threshold=arguments.vad_threshold,
-                           energy_floor=arguments.energy_floor,
-                           trim_non_speech=arguments.trim_non_speech)
+        rVADfast_multi_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
+                               n_workers=n_workers,
+                               window_duration=arguments.window_duration,
+                               shift_duration=arguments.shift_duration,
+                               n_fft=arguments.n_fft,
+                               sft_threshold=arguments.sft_threshold,
+                               vad_threshold=arguments.vad_threshold,
+                               energy_floor=arguments.energy_floor,
+                               trim_non_speech=arguments.trim_non_speech)
     else:
-        rVAD_single_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
-                            window_duration=arguments.window_duration,
-                            shift_duration=arguments.shift_duration,
-                            n_fft=arguments.n_fft,
-                            sft_threshold=arguments.sft_threshold,
-                            vad_threshold=arguments.vad_threshold,
-                            energy_floor=arguments.energy_floor,
-                            trim_non_speech=arguments.trim_non_speech)
+        rVADfast_single_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
+                                window_duration=arguments.window_duration,
+                                shift_duration=arguments.shift_duration,
+                                n_fft=arguments.n_fft,
+                                sft_threshold=arguments.sft_threshold,
+                                vad_threshold=arguments.vad_threshold,
+                                energy_floor=arguments.energy_floor,
+                                trim_non_speech=arguments.trim_non_speech)
     print("Done.")
 
 
