@@ -37,19 +37,29 @@ def frame_label_to_start_stop(labels: np.ndarray):
 
     return start_stop_indices
 
+def trim_from_vad_timestamps(signal, sampling_rate, vad_timestamps):
+    vad_start_end = np.floor(vad_timestamps * sampling_rate).astype(int)
+    return np.concatenate([signal[start: end] for start, end in vad_start_end.T])
 
-def worker_function(file, save_folder, root_folder, vad):
-    save_file_name = file.stem.split(".")[0] + "_vad.txt"
+
+def worker_function(file, save_folder, root_folder, vad, trim_non_speech: bool = False):
     save_path = Path(os.path.join(save_folder, os.path.relpath(file.parent, root_folder)))
     save_path.mkdir(parents=True, exist_ok=True)
     signal, sampling_rate = audiofile.read(file)
     vad_labels, _ = vad(signal, sampling_rate)
     vad_timestamps = frame_label_to_start_stop(vad_labels) * vad.shift_duration
-    np.savetxt(save_path / save_file_name, vad_timestamps,
-               fmt='%1.3f', header='Speech Start Time [s], Speech End Time [s]', delimiter=',')
+
+    if trim_non_speech:
+        save_file_name = file.stem.split(".")[0] + file.suffix
+        signal_trimmed = trim_from_vad_timestamps(signal, sampling_rate, vad_timestamps)
+        audiofile.write(save_path / save_file_name, signal_trimmed, sampling_rate)
+    else:
+        save_file_name = file.stem.split(".")[0] + "_vad.txt"
+        np.savetxt(save_path / save_file_name, vad_timestamps,
+                   fmt='%1.3f', header='Speech Start Time [s], Speech End Time [s]', delimiter=',')
 
 
-def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav",
+def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav", trim_non_speech: bool = False,
                         **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
     print(f"Scanning {root_folder} for files with {extension=}...")
@@ -61,12 +71,12 @@ def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "w
     print("Starting VAD process")
     with tqdm(total=len(filepaths), desc="Generating VAD labels", unit="files") as pbar:
         for file in filepaths:
-            worker_function(file, save_folder, root_folder, vad)
+            worker_function(file, save_folder, root_folder, vad, trim_non_speech)
             pbar.update(1)
 
 
 def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1,
-                       **rvad_kwargs):
+                       trim_non_speech: bool = False, **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
 
     print(f"Scanning {root_folder} for files with {extension=}...")
@@ -77,9 +87,12 @@ def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wa
 
     print(f"Starting VAD multiprocessing pool with {n_workers=}")
     pool = multiprocessing.Pool(processes=n_workers)
-    loader_fn = partial(worker_function, save_folder=save_folder, root_folder=root_folder, vad=vad)
+    loader_fn = partial(worker_function, save_folder=save_folder, root_folder=root_folder, vad=vad,
+                        trim_non_speech=trim_non_speech)
+
+    processing_message = "Trimming non-speech segments" if trim_non_speech else "Generating VAD labels"
     for _ in tqdm(pool.imap_unordered(func=loader_fn, iterable=filepaths), total=len(filepaths),
-                  desc="Generating VAD labels", unit="files"):
+                  desc=processing_message, unit="files"):
         pass
 
     pool.close()
@@ -89,19 +102,24 @@ def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wa
 def main(argv=sys.argv):
     parser = ArgumentParser("Script for processing of multiple audio files using rVADfast.")
     parser.add_argument("--root", type=str, required=True, help="Path to audio file folder.")
-    parser.add_argument("--save_folder", type=str, required=False, help="Path to folder where VAD labels are saved.",
-                        default=None)
+    parser.add_argument("--save_folder", type=str, required=False,
+                        help="Path to folder where VAD labels/trimmed audio files are saved.", default=None)
     parser.add_argument("--ext", type=str, required=False, help="Audio file extension", default="wav")
     parser.add_argument("--n_workers", type=str, required=False,
                         help="Number of workers used for processing files."
                              "If 0 same process is used, otherwise multiprocessing is used.",
                         default=0)
+    parser.add_argument("--trim_non_speech", action='store_true',
+                        help="If argument is provided, non-speech segments are removed from the processed waveforms "
+                             "and the resulting waveform is saved to 'save_folder'. "
+                             "Otherwise, the VAD labels will simply be saved to 'save_folder' in .txt files.",
+                        default=False)
     parser.add_argument("--window_duration", type=float, required=False,
                         help="Duration of window in seconds.",
                         default=0.025)
     parser.add_argument("--shift_duration", type=float, required=False,
                         help="Duration of window shift in seconds.",
-                        default=0.001)
+                        default=0.010)
     parser.add_argument("--n_fft", type=int, required=False,
                         help="Number of fft bins to use.",
                         default=512)
@@ -135,7 +153,8 @@ def main(argv=sys.argv):
                            n_fft=arguments.n_fft,
                            sft_threshold=arguments.sft_threshold,
                            vad_threshold=arguments.vad_threshold,
-                           energy_floor=arguments.energy_floor)
+                           energy_floor=arguments.energy_floor,
+                           trim_non_speech=arguments.trim_non_speech)
     else:
         rVAD_single_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
                             window_duration=arguments.window_duration,
@@ -143,7 +162,8 @@ def main(argv=sys.argv):
                             n_fft=arguments.n_fft,
                             sft_threshold=arguments.sft_threshold,
                             vad_threshold=arguments.vad_threshold,
-                            energy_floor=arguments.energy_floor)
+                            energy_floor=arguments.energy_floor,
+                            trim_non_speech=arguments.trim_non_speech)
     print("Done.")
 
 
