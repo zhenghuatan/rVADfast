@@ -37,23 +37,22 @@ def frame_label_to_start_stop(labels: np.ndarray):
 
     return start_stop_indices
 
+
 def worker_function(file, save_folder, root_folder, vad):
-    save_file_name = file.stem.split(".")[0] + ".txt"
+    save_file_name = file.stem.split(".")[0] + "_vad.txt"
     save_path = Path(os.path.join(save_folder, os.path.relpath(file.parent, root_folder)))
     save_path.mkdir(parents=True, exist_ok=True)
     signal, sampling_rate = audiofile.read(file)
     vad_labels, _ = vad(signal, sampling_rate)
-    #TODO: Ideally, you should be able to provide settings like window duration and shift duration
-    # to support non-deafault settings for rVAD.
     vad_timestamps = frame_label_to_start_stop(vad_labels) * vad.shift_duration
-    np.savetxt(save_path / save_file_name, vad_timestamps.astype(int),
-               fmt='%f1.3', header='Speech Start Time, Speech End Time', delimiter=',')
+    np.savetxt(save_path / save_file_name, vad_timestamps,
+               fmt='%1.3f', header='Speech Start Time [s], Speech End Time [s]', delimiter=',')
 
 
 def rVAD_single_process(root_folder, save_folder: str = ".", extension: str = "wav",
-                       **rvad_kwargs):
+                        **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
-    print(f"Scanning {root_folder} for files with {extension=}")
+    print(f"Scanning {root_folder} for files with {extension=}...")
     filepaths = []
     for file in Path(root_folder).rglob("*." + extension):
         filepaths.append(file)
@@ -70,7 +69,7 @@ def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wa
                        **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
 
-    print(f"Scanning {root_folder} for files with {extension=}")
+    print(f"Scanning {root_folder} for files with {extension=}...")
     filepaths = []
     for file in Path(root_folder).rglob("*." + extension):
         filepaths.append(file)
@@ -88,7 +87,7 @@ def rVAD_multi_process(root_folder, save_folder: str = ".", extension: str = "wa
 
 
 def main(argv=sys.argv):
-    parser = ArgumentParser("Script for processing of multiple audio files using rVAD fast.")
+    parser = ArgumentParser("Script for processing of multiple audio files using rVADfast.")
     parser.add_argument("--root", type=str, required=True, help="Path to audio file folder.")
     parser.add_argument("--save_folder", type=str, required=False, help="Path to folder where VAD labels are saved.",
                         default=None)
@@ -97,7 +96,27 @@ def main(argv=sys.argv):
                         help="Number of workers used for processing files."
                              "If 0 same process is used, otherwise multiprocessing is used.",
                         default=0)
+    parser.add_argument("--window_duration", type=float, required=False,
+                        help="Duration of window in seconds.",
+                        default=0.025)
+    parser.add_argument("--shift_duration", type=float, required=False,
+                        help="Duration of window shift in seconds.",
+                        default=0.001)
+    parser.add_argument("--n_fft", type=int, required=False,
+                        help="Number of fft bins to use.",
+                        default=512)
+    parser.add_argument("--sft_threshold", type=float, required=False,
+                        help="Threshold for spectral flatness.",
+                        default=0.5)
+    parser.add_argument("--vad_threshold", type=float, required=False,
+                        help="Threshold for VAD.",
+                        default=0.4)
+    parser.add_argument("--energy_floor", type=float, required=False,
+                        help="Energy floor.",
+                        default=np.exp(-50))
     arguments = parser.parse_args(argv[1:])
+
+
 
     if arguments.n_workers == "max":
         n_workers = multiprocessing.cpu_count()
@@ -106,14 +125,27 @@ def main(argv=sys.argv):
     else:
         raise ValueError("Unsupported argument for number of workers")
 
+    # TODO: Ideally, you should be able to provide settings like window duration and shift duration as kwarg
+    # to support non-deafault settings for rVAD.
     if n_workers > 0:
         rVAD_multi_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
-                           n_workers=n_workers)
+                           n_workers=n_workers,
+                           window_duration=arguments.window_duration,
+                           shift_duration=arguments.shift_duration,
+                           n_fft=arguments.n_fft,
+                           sft_threshold=arguments.sft_threshold,
+                           vad_threshold=arguments.vad_threshold,
+                           energy_floor=arguments.energy_floor)
     else:
-        rVAD_single_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext)
+        rVAD_single_process(root_folder=arguments.root, save_folder=arguments.save_folder, extension=arguments.ext,
+                            window_duration=arguments.window_duration,
+                            shift_duration=arguments.shift_duration,
+                            n_fft=arguments.n_fft,
+                            sft_threshold=arguments.sft_threshold,
+                            vad_threshold=arguments.vad_threshold,
+                            energy_floor=arguments.energy_floor)
     print("Done.")
 
 
 if __name__ == "__main__":
     main()
-    print("done")
