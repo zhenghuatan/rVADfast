@@ -1,7 +1,8 @@
 # rVADfast
-The Python library for an unsupervised, fast method for robust voice activity detection (rVAD), as presented in the 
-paper rVAD: An Unsupervised Segment-Based Robust Voice Activity Detection Method, Computer Speech and Language, 2020. 
+The Python library for an unsupervised, fast method for robust voice activity detection (rVAD), as presented in [rVAD: An Unsupervised Segment-Based Robust Voice Activity Detection Method, Computer Speech & Language, 2020](https://www.sciencedirect.com/science/article/pii/S0885230819300920) or its [arXiv version](https://arxiv.org/abs/1906.03588). 
 More info on [the rVAD GitHub page](https://github.com/zhenghuatan/rVAD). 
+
+***The rVAD paper published in Computer Speech & Language won International Speech Communication Association (ISCA) 2022 Best Research Paper Award.***
 
 The rVAD method consists of two passes of denoising followed by a VAD stage. It has been applied as a preprocessor for 
 a wide range of applications, such as speech recognition, speaker identification, language identification, age and 
