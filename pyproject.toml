@@ -4,17 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rVADfast"
-version = "0.0.1"
+version = "0.0.2"
 description = "rVADfast - a fast and robust unsupervised VAD"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">= 3.8"
 keywords = ["Audio", "Tools", "VAD", "Speech", "Speech Processing"]
-license = {text = "MIT"}
+license = {text = "MIT License"}
 classifiers = [
     "Development Status :: 3 - Alpha",
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
     'Topic :: Scientific/Engineering',
     'Topic :: Multimedia :: Sound/Audio',
