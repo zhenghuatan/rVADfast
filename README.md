@@ -18,7 +18,7 @@ in a Fearless Steps Speech Activity Detection Challenge.
 The rVAD paper is among [the most cited articles from Computer Speech and Language published since 2018](https://www.journals.elsevier.com/computer-speech-and-language/most-cited-articles) (the 6th place), in 2023.
 
 ## Usage
-The rVADfast library is available as a python package installable via: 
+The [rVADfast](https://pypi.org/project/rVADfast/) library is available as a python package installable via: 
 ```bash
 pip install rVADfast
 ```
