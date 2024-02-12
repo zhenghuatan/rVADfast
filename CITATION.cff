@@ -20,14 +20,14 @@ preferred-citation:
   type: article
   authors:
   - family-names: "Tan"
-  given-names: "Zheng-Hua"
-  orcid: "https://orcid.org/0000-0001-6856-8928"
+    given-names: "Zheng-Hua"
+    orcid: "https://orcid.org/0000-0001-6856-8928"
   - family-names: "Sartar"
     given-names: "Achintya"
     orcid: "https://orcid.org/0000-0002-9870-3980"
   - family-names: "Najim"
     given-names: "Dehak"
-  orcid: "https://orcid.org/0000-0002-4489-5753"
+    orcid: "https://orcid.org/0000-0002-4489-5753"
   doi: "10.1016/j.csl.2019.06.005"
   journal: "Computer Speech and Language"
   start: 1 # First page number
