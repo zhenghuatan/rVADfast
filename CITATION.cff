@@ -29,8 +29,7 @@ preferred-citation:
     given-names: "Dehak"
   orcid: "https://orcid.org/0000-0002-4489-5753"
   doi: "10.1016/j.csl.2019.06.005"
-  journal: "Computer Speech & Language"
-  month: 9
+  journal: "Computer Speech and Language"
   start: 1 # First page number
   end: 21 # Last page number
   title: "rVAD: An unsupervised segment-based robust voice activity detection method"
