@@ -47,6 +47,11 @@ def worker_function(file, save_folder, root_folder, vad, trim_non_speech: bool =
     save_path = Path(os.path.join(save_folder, os.path.relpath(file.parent, root_folder)))
     save_path.mkdir(parents=True, exist_ok=True)
     signal, sampling_rate = audiofile.read(file)
+
+    # Convert to mono be averaging channels if multichannel
+    if len(signal.shape) > 1:
+        signal = np.mean(signal, axis=0)
+
     vad_labels, _ = vad(signal, sampling_rate)
     vad_timestamps = frame_label_to_start_stop(vad_labels) * vad.shift_duration
 
