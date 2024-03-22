@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Tan"
+  given-names: "Zheng-Hua"
+  orcid: "https://orcid.org/0000-0001-6856-8928"
+- family-names: "Sarkar"
+  given-names: "Achintya"
+  orcid: "https://orcid.org/0000-0002-9870-3980"
+- family-names: "Najim"
+  given-names: "Dehak"
+  orcid: "https://orcid.org/0000-0002-4489-5753"
+title: "rVADfast - a fast and robust unsupervised VAD"
+version: 0.0.2
+doi: 10.1016/j.csl.2019.06.005
+date-released: 2024-01-23
+url: "https://github.com/zhenghuatan/rVADfast"
+license: MIT
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Tan"
+    given-names: "Zheng-Hua"
+    orcid: "https://orcid.org/0000-0001-6856-8928"
+  - family-names: "Sartar"
+    given-names: "Achintya"
+    orcid: "https://orcid.org/0000-0002-9870-3980"
+  - family-names: "Najim"
+    given-names: "Dehak"
+    orcid: "https://orcid.org/0000-0002-4489-5753"
+  doi: "10.1016/j.csl.2019.06.005"
+  journal: "Computer Speech and Language"
+  start: 1 # First page number
+  end: 21 # Last page number
+  title: "rVAD: An unsupervised segment-based robust voice activity detection method"
+  volume: 59
+  year: 2020
+  
