@@ -38,7 +38,7 @@ vad_labels, vad_timestamps = vad(waveform, sampling_rate)
 ```
 
 The package also contains functionality to process folders of audio files, to generate VAD labels 
-or to trim non-speeh segments from audio files.
+or to trim non-speech segments from audio files.
 This is done by importing the ```rVADfast.process``` module which has two methods for processing audio files, 
 namely ```process.rVADfast_single_process``` and ```process.rVADfast_multi_process```, 
 with the latter utilizing multiple CPUs for processing.
