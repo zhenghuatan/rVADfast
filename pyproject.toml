@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rVADfast"
-version = "0.0.2"
+version = "0.0.4"
 description = "rVADfast - a fast and robust unsupervised VAD"
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -50,3 +50,4 @@ Source = "https://github.com/zhenghuatan/rVADfast/"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
