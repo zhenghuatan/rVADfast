@@ -1,1 +1,13 @@
-from .speechproc import *
+from .speechproc import (compute_n_frames,
+                         enframe,
+                         spectral_flatness,
+                         sflux,
+                         estimate_energy,
+                         segmentwise_percentile,
+                         segmentwise_exponential_smooth,
+                         segmentwise_max,
+                         compute_posteriori_snr,
+                         compute_snr_weighted_energy_diff,
+                         snre_highenergy,
+                         snre_vad,
+                         pitch_block_detect)
