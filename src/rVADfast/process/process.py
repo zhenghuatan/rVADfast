@@ -55,12 +55,24 @@ def worker_function(file, save_folder, root_folder, vad, trim_non_speech: bool =
     vad_labels, _ = vad(signal, sampling_rate)
     vad_timestamps = frame_label_to_start_stop(vad_labels) * vad.shift_duration
 
+
     if trim_non_speech:
-        save_file_name = file.stem.split(".")[0] + file.suffix
-        signal_trimmed = trim_from_vad_timestamps(signal, sampling_rate, vad_timestamps)
-        audiofile.write(save_path / save_file_name, signal_trimmed, sampling_rate)
+        if vad_timestamps is None or vad_timestamps.size == 0:
+            print(f" Skipping (no speech found): {file}")
+            return
+
+        try:
+            signal_trimmed = trim_from_vad_timestamps(signal, sampling_rate, vad_timestamps)
+            #save_file_name = file.stem.split(".")[0] + file.suffix
+            save_file_name = file.name
+            audiofile.write(save_path / save_file_name, signal_trimmed, sampling_rate)
+        except Exception as e:
+            print(f" Error trimming {file}: {type(e).__name__}: {e}")
+            return
+
     else:
-        save_file_name = file.stem.split(".")[0] + "_vad.txt"
+        # save_file_name = file.stem.split(".")[0] + "_vad.txt"
+        save_file_name = file.name + "_vad.txt"
         np.savetxt(save_path / save_file_name, vad_timestamps,
                    fmt='%1.3f', header='Speech Start Time [s], Speech End Time [s]', delimiter=',')
 
@@ -81,15 +93,12 @@ def rVADfast_single_process(root_folder, save_folder: str = ".", extension: str 
             worker_function(file, save_folder, root_folder, vad, trim_non_speech)
             pbar.update(1)
 
-
 def rVADfast_multi_process(root_folder, save_folder: str = ".", extension: str = "wav", n_workers: Union[int, str] = 1,
                            trim_non_speech: bool = False, **rvad_kwargs):
     vad = rVADfast(**rvad_kwargs)
 
     print(f"Scanning {root_folder} for files with {extension=}...")
-    filepaths = []
-    for file in Path(root_folder).rglob("*." + extension):
-        filepaths.append(file)
+    filepaths = list(Path(root_folder).rglob("*." + extension))
     print(f"Found {len(filepaths)} files.")
 
     print(f"Starting VAD using multiprocessing pool with {n_workers=}.")
@@ -98,9 +107,16 @@ def rVADfast_multi_process(root_folder, save_folder: str = ".", extension: str =
                         trim_non_speech=trim_non_speech)
 
     processing_message = "Trimming non-speech segments" if trim_non_speech else "Generating VAD labels"
-    for _ in tqdm(pool.imap_unordered(func=loader_fn, iterable=filepaths), total=len(filepaths),
-                  desc=processing_message, unit="files"):
-        pass
+    for filepath, result in zip(
+        filepaths,
+        tqdm(pool.imap_unordered(func=loader_fn, iterable=filepaths), total=len(filepaths),
+             desc=processing_message, unit="files")
+    ):
+        try:
+            _ = result
+        except Exception as e:
+            print(f"\n Error processing file: {filepath}")
+            print(f"   {type(e).__name__}: {e}")
 
     pool.close()
     pool.join()
