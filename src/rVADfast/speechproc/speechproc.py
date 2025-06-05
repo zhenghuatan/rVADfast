@@ -86,7 +86,7 @@ def estimate_energy(signal, frame_length, frame_shift, energy_floor):
 
 def segmentwise_percentile(energy, segment_length, percentile: int = 10):
     energy_segmented = enframe(energy, segment_length, segment_length)
-    energy_segmented[energy_segmented == 0] = np.NaN
+    energy_segmented[energy_segmented == 0] = np.nan
     energy_segmented_min = np.nanpercentile(energy_segmented, percentile, axis=-1)
     return energy_segmented_min
 
@@ -108,7 +108,7 @@ def segmentwise_exponential_smooth(energy, segment_length):
 
 def segmentwise_max(signal, segment_length):
     segments = enframe(signal, segment_length, segment_length)
-    segments[segments == 0] = np.NaN
+    segments[segments == 0] = np.nan
     segments_max = np.nanmax(segments, axis=-1)
     # Set each segment to segment-wise max
     signal_max = np.copy(signal)
