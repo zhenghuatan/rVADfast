@@ -183,9 +183,10 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
     vad = np.zeros(n_frames, dtype=bool)
 
     for start, end in _runs(pitch_voiced_block):
-        stop = end - 1
-        segment_energy = energy[start:stop + 1]
+        end_inclusive = end - 1
+        segment_energy = energy[start:end_inclusive + 1]
         if len(segment_energy) == 1:
+            # A single frame has no energy difference from which to estimate SNR.
             continue
         energy_min = np.percentile(segment_energy, 10)
         posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
@@ -195,41 +196,42 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         energy_difference[0] = energy_difference[1]
 
         # Boxcar-smooth the energy difference across neighboring frames.
+        # The threshold uses this same unnormalized scale.
         smoothed_difference = np.convolve(
             np.pad(energy_difference, SNR_SMOOTHING_RADIUS, mode="edge"),
             np.ones(2 * SNR_SMOOTHING_RADIUS + 1),
             mode="valid")[:len(segment_energy)]
-        pitch_segment = pitch_voiced[start:stop + 1]
+        pitch_segment = pitch_voiced[start:end_inclusive + 1]
         if np.any(pitch_segment):
             threshold = smoothed_difference[pitch_segment].mean() * vad_threshold
-            vad[start:stop + 1] = smoothed_difference > threshold
+            vad[start:end_inclusive + 1] = smoothed_difference > threshold
 
     initial_vad = vad.copy()
     for start, end in _runs(initial_vad):
-        stop = end - 1
-        pitch_indices = np.flatnonzero(pitch_voiced[start:stop + 1]) + start
+        end_inclusive = end - 1
+        pitch_indices = np.flatnonzero(pitch_voiced[start:end_inclusive + 1]) + start
         if not len(pitch_indices):
-            vad[start:stop + 1] = False
+            vad[start:end_inclusive + 1] = False
             continue
         first_pitch, last_pitch = pitch_indices[[0, -1]]
         left_extension, right_extension = LONG_PITCH_EXTENSION
         left_boundary = first_pitch - left_extension
         if left_boundary > start:
             vad[start:left_boundary] = False
-        vad[min(last_pitch + right_extension + 1, stop + 1):stop + 1] = False
+        vad[min(last_pitch + right_extension + 1, end_inclusive + 1):end_inclusive + 1] = False
 
     for start, end in _runs(initial_vad):
-        stop = end - 1
-        pitch_indices = np.flatnonzero(pitch_voiced[start:stop + 1]) + start
+        end_inclusive = end - 1
+        pitch_indices = np.flatnonzero(pitch_voiced[start:end_inclusive + 1]) + start
         if len(pitch_indices) > 4:
             first_pitch, last_pitch = pitch_indices[[0, -1]]
             left_extension, right_extension = SHORT_PITCH_EXTENSION
             vad[max(first_pitch - left_extension, start):first_pitch + 1] = True
-            vad[last_pitch + 1:min(last_pitch + right_extension + 1, stop + 1)] = True
-        if energy[start:stop + 1].mean() < MIN_SEGMENT_ENERGY:
-            vad[start:stop + 1] = False
+            vad[last_pitch + 1:min(last_pitch + right_extension + 1, end_inclusive + 1)] = True
+        if energy[start:end_inclusive + 1].mean() < MIN_SEGMENT_ENERGY:
+            vad[start:end_inclusive + 1] = False
         if len(pitch_indices) <= 2:
-            vad[start:stop + 1] = False
+            vad[start:end_inclusive + 1] = False
 
     return vad.astype(np.int64)
 

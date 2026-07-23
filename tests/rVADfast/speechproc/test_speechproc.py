@@ -27,8 +27,9 @@ def test_snre_vad_detects_reference_voiced_region():
     expected = np.ones(N_FRAMES, dtype=np.int64)
     # The first energy transition occurs after frame 1.
     expected[:2] = 0
-    # The two silent intervals produce non-voiced gaps.
+    # Frames 39-40 cross from the first one-valued interval to silence.
     expected[39:41] = 0
+    # Frames 79-81 cover the later silent interval.
     expected[79:82] = 0
     assert np.array_equal(result, expected)
 
