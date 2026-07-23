@@ -11,8 +11,7 @@ VAD_THRESHOLD = 0.4
 
 
 def test_snre_vad_detects_reference_voiced_region():
-    rng = np.random.default_rng(1729)
-    signal = rng.normal(size=2_000)
+    signal = np.where((np.arange(2_000) // 100) % 2, 1.0, 0.1)
     pitch_voiced = np.zeros(N_FRAMES, dtype=bool)
     pitch_voiced[20:45] = True
     pitch_voiced[60:90] = True

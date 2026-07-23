@@ -189,10 +189,9 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         energy_min = np.percentile(segment_energy, 10)
         posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
         energy_difference = np.zeros_like(segment_energy)
-        if len(segment_energy) > 1:
-            energy_difference[1:] = np.sqrt(
-                np.abs(np.diff(segment_energy)) * posteriori_snr[1:])
-            energy_difference[0] = energy_difference[1]
+        energy_difference[1:] = np.sqrt(
+            np.abs(np.diff(segment_energy)) * posteriori_snr[1:])
+        energy_difference[0] = energy_difference[1]
 
         # Boxcar-smooth the energy difference across neighboring frames.
         smoothed_difference = np.convolve(
@@ -223,7 +222,7 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             first_pitch, last_pitch = pitch_indices[[0, -1]]
             left_extension, right_extension = SHORT_PITCH_EXTENSION
             vad[max(first_pitch - left_extension, start):first_pitch + 1] = True
-            vad[last_pitch:min(last_pitch + right_extension + 1, stop + 1)] = True
+            vad[last_pitch + 1:min(last_pitch + right_extension + 1, stop + 1)] = True
         if energy[start:stop + 1].mean() < MIN_SEGMENT_ENERGY:
             vad[start:stop + 1] = False
         if len(pitch_indices) <= 2:
