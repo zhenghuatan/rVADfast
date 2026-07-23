@@ -11,7 +11,12 @@ VAD_THRESHOLD = 0.4
 
 
 def test_snre_vad_detects_reference_voiced_region():
-    signal = np.where((np.arange(2_000) // 100) % 2, 1.0, 0.1)
+    signal = np.concatenate((
+        np.zeros(400),
+        np.ones(500),
+        np.zeros(300),
+        np.ones(800),
+    ))
     pitch_voiced = np.zeros(N_FRAMES, dtype=bool)
     pitch_voiced[20:45] = True
     pitch_voiced[60:90] = True
@@ -19,7 +24,11 @@ def test_snre_vad_detects_reference_voiced_region():
     result = snre_vad(signal, N_FRAMES, FRAME_LENGTH, FRAME_SHIFT,
                       ENERGY_FLOOR, pitch_voiced, VAD_THRESHOLD)
 
-    assert np.array_equal(result, np.ones(N_FRAMES, dtype=np.int64))
+    expected = np.ones(N_FRAMES, dtype=np.int64)
+    expected[:2] = 0
+    expected[39:41] = 0
+    expected[79:82] = 0
+    assert np.array_equal(result, expected)
 
 
 def test_snre_vad_handles_short_and_unvoiced_input():
