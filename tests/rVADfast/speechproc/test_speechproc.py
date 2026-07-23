@@ -100,7 +100,11 @@ def test_pitch_and_high_energy_utilities():
 
 
 def test_signal_processing_parity_with_legacy_code():
-    legacy_path = Path(__file__).parents[3] / "src/rVADfast/legacy_files/speechproc.py"
+    repository_root = next(
+        parent for parent in Path(__file__).resolve().parents
+        if (parent / "pyproject.toml").is_file()
+    )
+    legacy_path = repository_root / "src/rVADfast/legacy_files/speechproc.py"
     spec = importlib.util.spec_from_file_location("legacy_speechproc", legacy_path)
     legacy = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(legacy)

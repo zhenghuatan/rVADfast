@@ -204,7 +204,7 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         smoothed_difference = np.convolve(
             np.pad(energy_difference, SNR_SMOOTHING_RADIUS, mode="edge"),
             np.ones(2 * SNR_SMOOTHING_RADIUS + 1),
-            mode="valid")[:len(segment_energy)]
+            mode="valid")
         pitch_segment = pitch_voiced[start:end_inclusive + 1]
         if np.any(pitch_segment):
             threshold = smoothed_difference[pitch_segment].mean() * vad_threshold

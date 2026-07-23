@@ -49,6 +49,7 @@ def test_worker_function_writes_labels_and_trimmed_audio(tmp_path, monkeypatch):
     process.worker_function(input_path, tmp_path / "trimmed", tmp_path, Vad(), trim_non_speech=True)
     assert writes[0][0] == tmp_path / "trimmed" / "input.wav"
     assert np.array_equal(writes[0][1], np.arange(2))
+    assert writes[0][2] == 10
 
 
 def test_batch_processors_and_cli_dispatch(tmp_path, monkeypatch):
