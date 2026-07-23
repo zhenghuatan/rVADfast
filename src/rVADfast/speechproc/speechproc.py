@@ -188,7 +188,7 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         if len(segment_energy) == 1:
             # A single frame has no energy difference from which to estimate SNR.
             continue
-        energy_min = np.percentile(segment_energy, 10)
+        energy_min = max(np.percentile(segment_energy, 10), np.finfo(float).tiny)
         posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
         energy_difference = np.zeros_like(segment_energy)
         energy_difference[1:] = np.sqrt(
@@ -229,9 +229,11 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             first_pitch, last_pitch = pitch_indices[[0, -1]]
             left_extension, right_extension = SHORT_PITCH_EXTENSION
             extension_start = max(first_pitch - left_extension, start)
-            if extension_start <= first_pitch:
+            if extension_start < first_pitch:
                 vad[extension_start:first_pitch + 1] = True
-            vad[last_pitch + 1:min(last_pitch + right_extension + 1, end_inclusive + 1)] = True
+            extension_stop = min(last_pitch + right_extension + 1, end_inclusive + 1)
+            if last_pitch + 1 < extension_stop:
+                vad[last_pitch + 1:extension_stop] = True
         if energy[start:end_inclusive + 1].mean() < MIN_SEGMENT_ENERGY:
             vad[start:end_inclusive + 1] = False
         if len(pitch_indices) <= 2:
