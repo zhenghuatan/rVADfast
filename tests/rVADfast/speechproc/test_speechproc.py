@@ -99,7 +99,7 @@ def test_pitch_and_high_energy_utilities():
     assert result.shape == (14,)
 
 
-def test_signal_processing_parity_with_legacy_code():
+def test_core_signal_features_match_legacy_algorithm():
     repository_root = next(
         parent for parent in Path(__file__).resolve().parents
         if (parent / "pyproject.toml").is_file()
