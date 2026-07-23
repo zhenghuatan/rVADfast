@@ -1,0 +1,2 @@
+[console_scripts]
+rVADfast_process = rVADfast.process:main
