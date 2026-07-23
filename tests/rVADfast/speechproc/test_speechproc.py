@@ -14,7 +14,7 @@ ENERGY_FLOOR = np.exp(-50)
 VAD_THRESHOLD = 0.4
 
 
-def test_snre_vad_detects_reference_voiced_region():
+def test_snre_vad_detects_voiced_regions():
     signal = np.concatenate((
         np.zeros(400),
         np.ones(500),
@@ -100,6 +100,7 @@ def test_pitch_and_high_energy_utilities():
 
 
 def test_core_signal_features_match_legacy_algorithm():
+    """Check shared framing, flatness, and pitch-block computations against legacy code."""
     repository_root = next(
         parent for parent in Path(__file__).resolve().parents
         if (parent / "pyproject.toml").is_file()
