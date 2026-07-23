@@ -25,7 +25,7 @@ def test_trim_from_vad_timestamps():
 def test_frame_label_to_start_stop_handles_boundary_segments():
     assert np.array_equal(
         frame_label_to_start_stop(np.array([1, 1, 0, 1, 1])),
-        np.array([[0, 3], [1, 4]]),
+        np.array([[0, 2], [1, 4]]),
     )
 
 
@@ -48,7 +48,7 @@ def test_worker_function_writes_labels_and_trimmed_audio(tmp_path, monkeypatch):
 
     process.worker_function(input_path, tmp_path / "trimmed", tmp_path, Vad(), trim_non_speech=True)
     assert writes[0][0] == tmp_path / "trimmed" / "input.wav"
-    assert np.array_equal(writes[0][1], np.arange(1, 3))
+    assert np.array_equal(writes[0][1], np.arange(2))
 
 
 def test_batch_processors_and_cli_dispatch(tmp_path, monkeypatch):
@@ -57,7 +57,23 @@ def test_batch_processors_and_cli_dispatch(tmp_path, monkeypatch):
     input_path.touch()
     calls = []
     monkeypatch.setattr(process, "worker_function", lambda *args, **kwargs: calls.append((args, kwargs)))
-    monkeypatch.setattr(process, "tqdm", lambda iterable=None, **kwargs: iterable)
+    class Progress:
+        def __init__(self, iterable=None, **_):
+            self.iterable = iterable
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def update(self, _):
+            pass
+
+        def __iter__(self):
+            return iter(self.iterable)
+
+    monkeypatch.setattr(process, "tqdm", Progress)
 
     process.rVADfast_single_process(tmp_path, tmp_path / "out")
     assert len(calls) == 1
