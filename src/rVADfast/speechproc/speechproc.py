@@ -9,6 +9,11 @@ SHORT_PITCH_EXTENSION = (5, 12)
 MIN_SEGMENT_ENERGY = 0.001
 
 
+def _runs(labels):
+    boundaries = np.flatnonzero(np.diff(np.r_[False, labels, False]))
+    return boundaries.reshape(-1, 2)
+
+
 # References
 # Z.-H. Tan and B. Lindberg, Low-complexity variable frame rate analysis for speech recognition and voice activity detection.
 # IEEE Journal of Selected Topics in Signal Processing, vol. 4, no. 5, pp. 798-807, 2010.
@@ -177,15 +182,10 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
     energy = estimate_energy(signal, frame_length, frame_shift, energy_floor)
     vad = np.zeros(n_frames, dtype=bool)
 
-    def runs(labels):
-        boundaries = np.flatnonzero(np.diff(np.r_[False, labels, False]))
-        return boundaries.reshape(-1, 2)
-
-    for start, end in runs(pitch_voiced_block):
+    for start, end in _runs(pitch_voiced_block):
         stop = end - 1
         segment_energy = energy[start:stop + 1]
         if len(segment_energy) == 1:
-            vad[start:stop + 1] = False
             continue
         energy_min = np.percentile(segment_energy, 10)
         posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
@@ -205,7 +205,7 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             vad[start:stop + 1] = smoothed_difference > threshold
 
     initial_vad = vad.copy()
-    for start, end in runs(initial_vad):
+    for start, end in _runs(initial_vad):
         stop = end - 1
         pitch_indices = np.flatnonzero(pitch_voiced[start:stop + 1]) + start
         if not len(pitch_indices):
@@ -213,10 +213,12 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             continue
         first_pitch, last_pitch = pitch_indices[[0, -1]]
         left_extension, right_extension = LONG_PITCH_EXTENSION
-        vad[start:max(first_pitch - left_extension, start)] = False
+        left_boundary = first_pitch - left_extension
+        if left_boundary > start:
+            vad[start:left_boundary] = False
         vad[min(last_pitch + right_extension + 1, stop + 1):stop + 1] = False
 
-    for start, end in runs(initial_vad):
+    for start, end in _runs(initial_vad):
         stop = end - 1
         pitch_indices = np.flatnonzero(pitch_voiced[start:stop + 1]) + start
         if len(pitch_indices) > 4:
