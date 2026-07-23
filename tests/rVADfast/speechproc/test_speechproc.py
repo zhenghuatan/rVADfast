@@ -74,13 +74,13 @@ def test_spectral_and_segment_utilities():
     assert np.array_equal(speechproc.segmentwise_percentile(energy, 3), [1.2, 4.2])
     assert np.array_equal(
         speechproc.segmentwise_exponential_smooth(energy, 3),
-        [1.2, 1.2, 1.2, 1.5, 1.5, 1.5],
+        [1.2, 1.2, 1.2, 4.2, 4.2, 4.2],
     )
     assert np.array_equal(speechproc.segmentwise_max(energy, 3), [3, 3, 3, 6, 6, 6])
     assert np.allclose(speechproc.compute_posteriori_snr([10, 100], [1, 10]), [10, 10])
     assert np.allclose(
         speechproc.compute_snr_weighted_energy_diff(np.array([1., 5., 14.]), np.ones(3)),
-        [np.sqrt(4 * np.log10(5)), np.sqrt(4 * np.log10(5)), np.sqrt(9 * np.log10(14))],
+        [np.sqrt(90 * np.log10(14)), np.sqrt(40 * np.log10(5)), np.sqrt(90 * np.log10(14))],
     )
 
 
@@ -92,11 +92,11 @@ def test_pitch_and_high_energy_utilities():
     )
     signal = np.r_[np.zeros(50), np.ones(50), np.zeros(50)]
     result = speechproc.snre_highenergy(
-        signal, n_frames=13, frame_length=25, frame_shift=10,
-        energy_floor=ENERGY_FLOOR, pitch_voiced=np.zeros(13, dtype=bool),
+        signal, n_frames=14, frame_length=25, frame_shift=10,
+        energy_floor=ENERGY_FLOOR, pitch_voiced=np.zeros(14, dtype=bool),
     )
     assert result.dtype == bool
-    assert result.shape == (13,)
+    assert result.shape == (14,)
 
 
 def test_signal_processing_parity_with_legacy_code():

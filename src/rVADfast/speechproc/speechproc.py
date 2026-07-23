@@ -160,7 +160,11 @@ def snre_highenergy(signal, n_frames, frame_length, frame_shift, energy_floor, p
     # Central smoothing a posteriori SNR weighted energy difference
     kernel_size = 18 * 2 + 1
     kernel = np.ones(kernel_size) / kernel_size
-    snr_weighted_energy_diff_smoothed = np.convolve(snr_weighted_energy_diff, kernel, mode="same")
+    snr_weighted_energy_diff_smoothed = np.convolve(
+        np.pad(snr_weighted_energy_diff, SNR_SMOOTHING_RADIUS, mode="edge"),
+        kernel,
+        mode="valid",
+    )
 
     # Find segment-wise max and set each segment to segment-wise max
     snr_weighted_energy_diff_smoothed_max = segmentwise_max(snr_weighted_energy_diff_smoothed, segment_length)
