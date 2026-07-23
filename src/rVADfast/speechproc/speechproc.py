@@ -3,6 +3,12 @@ import math
 from copy import deepcopy
 
 
+SNR_SMOOTHING_RADIUS = 18
+LONG_PITCH_EXTENSION = (33, 47)
+SHORT_PITCH_EXTENSION = (5, 12)
+MIN_SEGMENT_ENERGY = 0.001
+
+
 # References
 # Z.-H. Tan and B. Lindberg, Low-complexity variable frame rate analysis for speech recognition and voice activity detection.
 # IEEE Journal of Selected Topics in Signal Processing, vol. 4, no. 5, pp. 798-807, 2010.
@@ -177,13 +183,8 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
 
     for start, end in runs(pitch_voiced_block):
         stop = end - 1
-        if stop - start > 1:
-            energy[start:stop] *= 2
-            energy[stop] = energy[stop - 1]
-
         segment_energy = energy[start:stop + 1]
-        rank = max(int(np.floor(len(segment_energy) * 0.1)) - 1, 0)
-        energy_min = np.partition(segment_energy, rank)[rank]
+        energy_min = np.percentile(segment_energy, 10)
         posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
         energy_difference = np.zeros_like(segment_energy)
         if len(segment_energy) > 1:
@@ -192,7 +193,9 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             energy_difference[0] = energy_difference[1]
 
         smoothed_difference = np.convolve(
-            np.pad(energy_difference, 18, mode="edge"), np.ones(36), mode="valid")[:len(segment_energy)]
+            np.pad(energy_difference, SNR_SMOOTHING_RADIUS, mode="edge"),
+            np.ones(2 * SNR_SMOOTHING_RADIUS),
+            mode="valid")[:len(segment_energy)]
         pitch_segment = pitch_voiced[start:stop + 1]
         if np.any(pitch_segment):
             threshold = smoothed_difference[pitch_segment].mean() * vad_threshold
@@ -206,17 +209,19 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
             vad[start:stop + 1] = False
             continue
         first_pitch, last_pitch = pitch_indices[[0, -1]]
-        vad[start:max(first_pitch - 33, start)] = False
-        vad[min(last_pitch + 48, stop + 1):stop + 1] = False
+        left_extension, right_extension = LONG_PITCH_EXTENSION
+        vad[start:max(first_pitch - left_extension, start)] = False
+        vad[min(last_pitch + right_extension + 1, stop + 1):stop + 1] = False
 
     for start, end in runs(initial_vad):
         stop = end - 1
         pitch_indices = np.flatnonzero(pitch_voiced[start:stop + 1]) + start
         if len(pitch_indices) > 4:
             first_pitch, last_pitch = pitch_indices[[0, -1]]
-            vad[max(first_pitch - 5, start):first_pitch + 1] = True
-            vad[last_pitch:min(last_pitch + 13, stop + 1)] = True
-        if energy[start:stop + 1].mean() < 0.001 or len(pitch_indices) <= 2:
+            left_extension, right_extension = SHORT_PITCH_EXTENSION
+            vad[max(first_pitch - left_extension, start):first_pitch + 1] = True
+            vad[last_pitch:min(last_pitch + right_extension + 1, stop + 1)] = True
+        if energy[start:stop + 1].mean() < MIN_SEGMENT_ENERGY or len(pitch_indices) <= 2:
             vad[start:stop + 1] = False
 
     return vad.astype(np.int64)
