@@ -218,7 +218,9 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         left_boundary = first_pitch - left_extension
         if left_boundary > start:
             vad[start:left_boundary] = False
-        vad[min(last_pitch + right_extension + 1, end_inclusive + 1):end_inclusive + 1] = False
+        right_boundary = min(last_pitch + right_extension + 1, end_inclusive + 1)
+        if right_boundary <= end_inclusive:
+            vad[right_boundary:end_inclusive + 1] = False
 
     for start, end in _runs(initial_vad):
         end_inclusive = end - 1
@@ -226,7 +228,9 @@ def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_vo
         if len(pitch_indices) > 4:
             first_pitch, last_pitch = pitch_indices[[0, -1]]
             left_extension, right_extension = SHORT_PITCH_EXTENSION
-            vad[max(first_pitch - left_extension, start):first_pitch + 1] = True
+            extension_start = max(first_pitch - left_extension, start)
+            if extension_start <= first_pitch:
+                vad[extension_start:first_pitch + 1] = True
             vad[last_pitch + 1:min(last_pitch + right_extension + 1, end_inclusive + 1)] = True
         if energy[start:end_inclusive + 1].mean() < MIN_SEGMENT_ENERGY:
             vad[start:end_inclusive + 1] = False
