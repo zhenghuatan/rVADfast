@@ -1,4 +1,11 @@
 # rVADfast
+[![Tests](https://github.com/zhenghuatan/rVADfast/actions/workflows/python-package.yml/badge.svg)](https://github.com/zhenghuatan/rVADfast/actions/workflows/python-package.yml)
+[![Coverage](https://codecov.io/gh/zhenghuatan/rVADfast/branch/master/graph/badge.svg)](https://app.codecov.io/gh/zhenghuatan/rVADfast/tree/master)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/rVADfast)](https://pypi.org/project/rVADfast/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/rVADfast)](https://pypi.org/project/rVADfast/)
+[![GitHub Stars](https://img.shields.io/github/stars/zhenghuatan/rVADfast)](https://github.com/zhenghuatan/rVADfast/stargazers)
+[![DOI](https://img.shields.io/badge/DOI-10.1016%2Fj.csl.2019.06.005-blue)](https://doi.org/10.1016/j.csl.2019.06.005)
+
 The Python library for an unsupervised, fast method for robust voice activity detection (rVAD), as presented in [rVAD: An Unsupervised Segment-Based Robust Voice Activity Detection Method, Computer Speech & Language, 2020](https://www.sciencedirect.com/science/article/pii/S0885230819300920) or its [arXiv version](https://arxiv.org/abs/1906.03588). 
 More info on [the rVAD GitHub page](https://github.com/zhenghuatan/rVAD). 
 
