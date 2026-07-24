@@ -3,6 +3,17 @@ import math
 from copy import deepcopy
 
 
+SNR_SMOOTHING_RADIUS = 18
+LONG_PITCH_EXTENSION = (33, 47)
+SHORT_PITCH_EXTENSION = (5, 12)
+MIN_SEGMENT_ENERGY = 0.001
+
+
+def _runs(labels):
+    boundaries = np.flatnonzero(np.diff(np.r_[False, labels, False]))
+    return boundaries.reshape(-1, 2)
+
+
 # References
 # Z.-H. Tan and B. Lindberg, Low-complexity variable frame rate analysis for speech recognition and voice activity detection.
 # IEEE Journal of Selected Topics in Signal Processing, vol. 4, no. 5, pp. 798-807, 2010.
@@ -149,7 +160,11 @@ def snre_highenergy(signal, n_frames, frame_length, frame_shift, energy_floor, p
     # Central smoothing a posteriori SNR weighted energy difference
     kernel_size = 18 * 2 + 1
     kernel = np.ones(kernel_size) / kernel_size
-    snr_weighted_energy_diff_smoothed = np.convolve(snr_weighted_energy_diff, kernel, mode="same")
+    snr_weighted_energy_diff_smoothed = np.convolve(
+        np.pad(snr_weighted_energy_diff, SNR_SMOOTHING_RADIUS, mode="edge"),
+        kernel,
+        mode="valid",
+    )
 
     # Find segment-wise max and set each segment to segment-wise max
     snr_weighted_energy_diff_smoothed_max = segmentwise_max(snr_weighted_energy_diff_smoothed, segment_length)
@@ -162,216 +177,73 @@ def snre_highenergy(signal, n_frames, frame_length, frame_shift, energy_floor, p
 
 
 def snre_vad(signal, n_frames, frame_length, frame_shift, energy_floor, pitch_voiced, vad_threshold):
-    # Extended pitch segment detection
+    """Detect voiced frames from SNR-weighted energy changes."""
+    pitch_voiced = np.asarray(pitch_voiced, dtype=bool)
+    if len(pitch_voiced) != n_frames:
+        raise ValueError("pitch_voiced length must match n_frames")
+
     pitch_voiced_block = pitch_block_detect(pitch_voiced, n_frames)
-
-    ## ---*******- important *******
-    # here [0] index array element has  not used
-
-    Dexpl, Dexpr = 18, 18
-    Dsmth = np.zeros(n_frames, dtype='float64')
-    Dsmth = np.insert(Dsmth, 0, 'inf')
-
-    fdata_ = deepcopy(signal)
-    pv01_ = deepcopy(pitch_voiced)
-    pvblk_ = deepcopy(pitch_voiced_block)
-
-    fdata_ = np.insert(fdata_, 0, 'inf')
-    pv01_ = np.insert(pv01_, 0, 'inf')
-    pvblk_ = np.insert(pvblk_, 0, 'inf')
-
-    # energy estimation
     energy = estimate_energy(signal, frame_length, frame_shift, energy_floor)
-    energy = np.insert(energy, 0, 'inf')  # temp bug fix
+    vad = np.zeros(n_frames, dtype=bool)
 
-    segsnr = np.zeros(n_frames);
-    segsnr = np.insert(segsnr, 0, 'inf')
-    segsnrsmth = 1
-    sign_segsnr = 0
-    D = np.zeros(n_frames)
-    D = np.insert(D, 0, 'inf')
-    posteriori_snr = np.zeros(n_frames, dtype='float64')
-    posteriori_snr = np.insert(posteriori_snr, 0, 'inf')
-    snre_vad = np.zeros(n_frames)
-    snre_vad = np.insert(snre_vad, 0, 'inf')
-    sign_pv = 0
+    for start, end in _runs(pitch_voiced_block):
+        end_inclusive = end - 1
+        segment_energy = energy[start:end_inclusive + 1]
+        if len(segment_energy) == 1:
+            # A single frame has no energy difference from which to estimate SNR.
+            continue
+        energy_min = max(np.percentile(segment_energy, 10), np.finfo(float).tiny)
+        posteriori_snr = np.maximum(np.log10(segment_energy) - np.log10(energy_min), 0)
+        energy_difference = np.zeros_like(segment_energy)
+        energy_difference[1:] = np.sqrt(
+            np.abs(np.diff(segment_energy)) * posteriori_snr[1:])
+        energy_difference[0] = energy_difference[1]
 
-    for i in range(1, n_frames + 1):
+        # Boxcar-smooth the energy difference across neighboring frames.
+        # The threshold uses this same unnormalized scale.
+        smoothed_difference = np.convolve(
+            np.pad(energy_difference, SNR_SMOOTHING_RADIUS, mode="edge"),
+            np.ones(2 * SNR_SMOOTHING_RADIUS + 1),
+            mode="valid")
+        pitch_segment = pitch_voiced[start:end_inclusive + 1]
+        if np.any(pitch_segment):
+            threshold = smoothed_difference[pitch_segment].mean() * vad_threshold
+            vad[start:end_inclusive + 1] = smoothed_difference > threshold
 
-        if (pvblk_[i] == 1) and (sign_pv == 0):
-            nstart = i
-            sign_pv = 1
+    initial_vad = vad.copy()
+    for start, end in _runs(initial_vad):
+        end_inclusive = end - 1
+        pitch_indices = np.flatnonzero(pitch_voiced[start:end_inclusive + 1]) + start
+        if not len(pitch_indices):
+            vad[start:end_inclusive + 1] = False
+            continue
+        first_pitch, last_pitch = pitch_indices[[0, -1]]
+        left_extension, right_extension = LONG_PITCH_EXTENSION
+        left_boundary = first_pitch - left_extension
+        if left_boundary > start:
+            vad[start:left_boundary] = False
+        right_boundary = min(last_pitch + right_extension + 1, end_inclusive + 1)
+        if right_boundary <= end_inclusive:
+            vad[right_boundary:end_inclusive + 1] = False
 
-        elif ((pvblk_[i] == 0) or (i == n_frames)) and (sign_pv == 1):
+    for start, end in _runs(initial_vad):
+        end_inclusive = end - 1
+        pitch_indices = np.flatnonzero(pitch_voiced[start:end_inclusive + 1]) + start
+        if len(pitch_indices) > 4:
+            first_pitch, last_pitch = pitch_indices[[0, -1]]
+            left_extension, right_extension = SHORT_PITCH_EXTENSION
+            extension_start = max(first_pitch - left_extension, start)
+            if extension_start < first_pitch:
+                vad[extension_start:first_pitch + 1] = True
+            extension_stop = min(last_pitch + right_extension + 1, end_inclusive + 1)
+            if last_pitch + 1 < extension_stop:
+                vad[last_pitch + 1:extension_stop] = True
+        if energy[start:end_inclusive + 1].mean() < MIN_SEGMENT_ENERGY:
+            vad[start:end_inclusive + 1] = False
+        if len(pitch_indices) <= 2:
+            vad[start:end_inclusive + 1] = False
 
-            nstop = i - 1
-            if i == n_frames:
-                nstop = i
-            sign_pv = 0
-            datai = fdata_[
-                range((nstart - 1) * frame_shift + 1, (nstop - 1) * frame_shift + frame_length - frame_shift + 1)]
-            datai = np.insert(datai, 0, 'inf')
-
-            for j in range(nstart, nstop - 1 + 1):  # previously it was for j=nstart:nstop-1
-                for h in range(1, frame_length + 1):
-                    energy[j] = energy[j] + np.square(datai[(j - nstart) * frame_shift + h])
-                if np.less_equal(energy[j], energy_floor):
-                    energy[j] = energy_floor
-
-            energy[nstop] = energy[nstop - 1]
-
-            eY = np.sort(energy[range(nstart, nstop + 1)])
-            eY = np.insert(eY, 0, 'inf')  # as [0] is discarding
-
-            emin = eY[int(np.floor((nstop - nstart + 1) * 0.1))]
-
-            for j in range(nstart + 1, nstop + 1):
-
-                posteriori_snr[j] = math.log10(energy[j]) - math.log10(emin)
-
-                if np.less(posteriori_snr[j], 0):
-                    posteriori_snr[j] = 0
-
-                D[j] = math.sqrt(np.abs(energy[j] - energy[j - 1]) * posteriori_snr[j])
-
-            D[nstart] = D[nstart + 1]
-
-            tm1 = np.hstack((np.ones(Dexpl) * D[nstart], D[range(nstart, nstop + 1)]))
-            Dexp = np.hstack((tm1, np.ones(Dexpr) * D[nstop]))
-
-            Dexp = np.insert(Dexp, 0, 'inf')
-
-            for j in range(0, nstop - nstart + 1):
-                Dsmth[nstart + j] = sum(Dexp[range(j + 1, j + Dexpl + Dexpr + 1)])
-
-            Dsmth_thres = sum(Dsmth[range(nstart, nstop + 1)] * pv01_[range(nstart, nstop + 1)]) / sum(
-                pv01_[range(nstart, nstop + 1)])
-
-            for j in range(nstart, nstop + 1):
-                if np.greater(Dsmth[j], Dsmth_thres * vad_threshold):
-                    snre_vad[j] = 1
-
-                    #
-    pv_vad = deepcopy(snre_vad)
-
-    nexpl = 33
-    nexpr = 47  # % 29 and 39, estimated statistically, 95% ; 33, 47 %98 for voicebox pitch
-    sign_vad = 0
-    for i in range(1, n_frames + 1):
-        if (snre_vad[i] == 1) and (sign_vad == 0):
-            nstart = i
-            sign_vad = 1
-        elif ((snre_vad[i] == 0) or (i == n_frames)) and (sign_vad == 1):
-            nstop = i - 1
-            if i == n_frames:
-                nstop = i
-            sign_vad = 0
-            for j in range(nstart, nstop + 1):
-                if pv01_[j] == 1:
-                    break
-
-            pv_vad[range(nstart, np.max([j - nexpl - 1, 1]) + 1)] = 0
-
-            for j in range(0, nstop - nstart + 1):
-                if pv01_[nstop - j] == 1:
-                    break
-
-            pv_vad[range(nstop - j + 1 + nexpr, nstop + 1)] = 0
-
-    nexpl = 5
-    nexpr = 12  # ; % 9 and 13, estimated statistically 5%; 5, 12 %2 for voicebox pitch
-    sign_vad = 0
-    for i in range(1, n_frames + 1):
-        if (snre_vad[i] == 1) and (sign_vad == 0):
-            nstart = i
-            sign_vad = 1
-        elif ((snre_vad[i] == 0) or (i == n_frames)) and (sign_vad == 1):
-            nstop = i - 1
-            if i == n_frames:
-                nstop = i
-            sign_vad = 0
-
-            if np.greater(sum(pv01_[range(nstart, nstop + 1)]), 4):
-                for j in range(nstart, nstop + 1):
-                    if pv01_[j] == 1:
-                        break
-
-                pv_vad[range(np.maximum(j - nexpl, 1), j - 1 + 1)] = 1
-                for j in range(0, nstop - nstart + 1):
-                    if pv01_[nstop - j] == 1:
-                        break
-                pv_vad[range(nstop - j + 1, min(nstop - j + nexpr, n_frames) + 1)] = 1
-
-            esegment = sum(energy[range(nstart, nstop + 1)]) / (nstop - nstart + 1)
-            if np.less(esegment, 0.001):
-                pv_vad[range(nstart, nstop + 1)] = 0
-
-            if np.less_equal(sum(pv01_[range(nstart, nstop + 1)]), 2):
-                pv_vad[range(nstart, nstop + 1)] = 0
-
-    sign_vad = 0
-    esum = 0
-    for i in range(1, n_frames + 1):
-        if (pv_vad[i] == 1) and (sign_vad == 0):
-            nstart = i
-            sign_vad = 1
-        elif ((pv_vad[i] == 0) or (i == n_frames)) and (sign_vad == 1):
-            nstop = i - 1
-            if i == n_frames:
-                nstop = i
-            sign_vad = 0
-            esum = esum + sum(energy[range(nstart, nstop + 1)])
-
-    #
-    eps = np.finfo(float).eps
-
-    eave = esum / (sum(pv_vad[1:len(pv_vad)]) + eps)  # except [0] index 'inf'
-
-    sign_vad = 0
-    for i in range(1, n_frames + 1):
-        if (pv_vad[i] == 1) and (sign_vad == 0):
-            nstart = i
-            sign_vad = 1
-        elif ((pv_vad[i] == 0) or (i == n_frames)) and (sign_vad == 1):
-            nstop = i - 1
-            if i == n_frames:
-                nstop = i
-            sign_vad = 0
-
-            # if np.less(sum(energy[range(nstart,nstop+1)])/(nstop-nstart+1), eave*0.05):
-            # pv_vad[range(nstart,nstop+1)] = 0
-
-    #
-    sign_vad = 0
-    vad_seg = np.zeros((n_frames, 2), dtype="int64")
-    n_vad_seg = -1  # for indexing array
-    for i in range(1, n_frames + 1):
-        if (pv_vad[i] == 1) and (sign_vad == 0):
-            nstart = i
-            sign_vad = 1
-        elif ((pv_vad[i] == 0) or (i == n_frames)) and (sign_vad == 1):
-            nstop = i - 1
-            sign_vad = 0
-            n_vad_seg = n_vad_seg + 1
-            # print i, n_vad_seg, nstart, nstop
-            vad_seg[n_vad_seg, :] = np.array([nstart, nstop])
-
-    vad_seg = vad_seg[:n_vad_seg + 1, ]
-
-    # syn  from [0] index
-    vad_seg = vad_seg - 1
-
-    # print vad_seg
-
-    # make one dimension array of (0/1)
-    xYY = np.zeros(n_frames, dtype="int64")
-    for i in range(len(vad_seg)):
-        k = range(vad_seg[i, 0], vad_seg[i, 1] + 1)
-        xYY[k] = 1
-
-    vad_seg = xYY
-
-    return vad_seg
+    return vad.astype(np.int64)
 
 
 def pitch_block_detect(pitch_voiced, n_frames, extension: int = 60):
