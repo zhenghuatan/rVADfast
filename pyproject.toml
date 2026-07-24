@@ -55,6 +55,7 @@ Source = "https://github.com/zhenghuatan/rVADfast/"
 dev = [
     "pytest>=7.4",
     "ruff>=0.15.22",
+    "pytest-cov",
 ]
 
 [tool.ruff]
