@@ -98,7 +98,12 @@ def test_pitch_and_high_energy_utilities():
     assert result.dtype == bool
     assert result.shape == (14,)
 
-
+@pytest.mark.filterwarnings(
+    "ignore:numpy\\.fix is deprecated.*:DeprecationWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:the matrix subclass is not the recommended way.*:PendingDeprecationWarning"
+)
 def test_core_signal_features_match_legacy_algorithm():
     """Check shared framing, flatness, and pitch-block computations against legacy code."""
     repository_root = next(
