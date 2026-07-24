@@ -62,6 +62,10 @@ dev = [
 norecursedirs = [
     "src/rVADfast/legacy_files"
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning:rVADfast\\.legacy_files\\..*",
+    "ignore::PendingDeprecationWarning:rVADfast\\.legacy_files\\..*",
+]
 
 [tool.coverage.run]
 omit = [
