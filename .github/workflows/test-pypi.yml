@@ -1,0 +1,64 @@
+name: Test PyPI Release
+
+on:
+  # Allows you to trigger the test manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to test (e.g., 0.1.0). Leave empty for latest.'
+        type: string
+        required: false
+  
+  # Automatically run this after your publish workflow completes successfully
+  workflow_run:
+    workflows: ["Publish to PyPI"] # Make sure this matches the exact 'name' of your publish workflow
+    types:
+      - completed
+
+jobs:
+  test-pypi:
+    # Only run automatically if the publish workflow succeeded, or if triggered manually
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test the minimum supported version and the latest
+        python-version: ["3.10", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python and uv
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      with:
+        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+
+    - name: Wait for PyPI index to update
+      if: ${{ github.event_name == 'workflow_run' }}
+      run: |
+        echo "Waiting 60 seconds for PyPI caches to update..."
+        sleep 60
+
+    - name: Create isolated virtual environment
+      run: uv venv
+
+    - name: Install rVADfast from PyPI and test tools
+      env:
+        TARGET_VERSION: ${{ inputs.version }}
+      run: |
+        if [ -n "$TARGET_VERSION" ]; then
+          uv pip install "rVADfast==$TARGET_VERSION" pytest
+        else
+          uv pip install rVADfast pytest
+        fi
+
+    - name: Delete local source code
+      # CRITICAL: This ensures pytest tests the package downloaded from PyPI, 
+      # not the local code sitting in your repository.
+      run: rm -rf src
+
+    - name: Run tests against PyPI package
+      # Runs pytest using the virtual environment containing the PyPI wheel
+      run: uv run pytest
