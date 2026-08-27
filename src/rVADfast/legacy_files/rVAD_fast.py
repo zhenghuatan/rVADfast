@@ -20,7 +20,7 @@ from copy import deepcopy
 
 
 winlen, ovrlen, pre_coef, nfilter, nftt = 0.025, 0.01, 0.97, 20, 512
-ftThres = 0.5;
+ftThres = 0.5
 vadThres = 0.4
 opts = 1
 
@@ -44,22 +44,24 @@ a = numpy.array([1.0000, -0.9540])
 fdata = lfilter(b, a, data, axis=0)
 
 # --pass 1--
-noise_samp, noise_seg, n_noise_samp = speechproc.snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk)
+noise_samp, noise_seg, n_noise_samp = speechproc.snre_highenergy(
+    fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk
+)
 
 # sets noisy segments to zero
 for j in range(n_noise_samp):
     fdata[range(int(noise_samp[j, 0]), int(noise_samp[j, 1]) + 1)] = 0
 
-vad_seg = speechproc.snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres)
+vad_seg = speechproc.snre_vad(
+    fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres
+)
 
-numpy.savetxt(fvad, vad_seg.astype(int), fmt='%i')
+numpy.savetxt(fvad, vad_seg.astype(int), fmt="%i")
 print("%s --> %s " % (finwav, fvad))
 
-data = None;
-pv01 = None;
-pitch = None;
-fdata = None;
-pvblk = None;
+data = None
+pv01 = None
+pitch = None
+fdata = None
+pvblk = None
 vad_seg = None
-
-

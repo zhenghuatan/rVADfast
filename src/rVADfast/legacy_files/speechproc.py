@@ -20,9 +20,9 @@ import code
 
 def speech_wave(fileName_):
     (fs, sig) = wav.read(fileName_)
-    if sig.dtype == 'int16':
+    if sig.dtype == "int16":
         nb = 16  # -> 16-bit wav files
-    elif sig.dtype == 'int32':
+    elif sig.dtype == "int32":
         nb = 32  # -> 32-bit wav files
     max_nb = float(2 ** (nb - 1))
     sig = sig / (max_nb + 1.0)
@@ -30,7 +30,11 @@ def speech_wave(fileName_):
 
 
 def enframe(speech, fs, winlen, ovrlen):
-    N, flth, foVr = len(speech), int(numpy.fix(fs * winlen)), int(numpy.fix(fs * ovrlen))
+    N, flth, foVr = (
+        len(speech),
+        int(numpy.fix(fs * winlen)),
+        int(numpy.fix(fs * ovrlen)),
+    )
 
     if len(speech) < flth:
         print("speech file length shorter than window length")
@@ -45,8 +49,10 @@ def enframe(speech, fs, winlen, ovrlen):
     else:
         signal = deepcopy(speech)
 
-    idx = numpy.tile(numpy.arange(0, flth), (frames, 1)) + numpy.tile(numpy.arange(0, (frames) * foVr, foVr),
-                                                                      (flth, 1)).T
+    idx = (
+        numpy.tile(numpy.arange(0, flth), (frames, 1))
+        + numpy.tile(numpy.arange(0, (frames) * foVr, foVr), (flth, 1)).T
+    )
     idx = numpy.array(idx, dtype=numpy.int64)
 
     return signal[idx]
@@ -86,21 +92,21 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
     ## ---*******- important *******
     # here [0] index array element has  not used
 
-    Dexpl = 18;
-    Dexpr = 18;
+    Dexpl = 18
+    Dexpr = 18
     segThres = 0.25
 
-    fdata_ = deepcopy(fdata);
-    pv01_ = deepcopy(pv01);
+    fdata_ = deepcopy(fdata)
+    pv01_ = deepcopy(pv01)
     pvblk_ = deepcopy(pvblk)
 
-    fdata_ = numpy.insert(fdata_, 0, 'inf')
-    pv01_ = numpy.insert(pv01_, 0, 'inf')
-    pvblk_ = numpy.insert(pvblk_, 0, 'inf')
+    fdata_ = numpy.insert(fdata_, 0, "inf")
+    pv01_ = numpy.insert(pv01_, 0, "inf")
+    pvblk_ = numpy.insert(pvblk_, 0, "inf")
 
     # energy estimation
-    e = numpy.zeros(nfr10, dtype='float64')
-    e = numpy.insert(e, 0, 'inf')
+    e = numpy.zeros(nfr10, dtype="float64")
+    e = numpy.insert(e, 0, "inf")
 
     for i in range(1, nfr10 + 1):
         for j in range(1, flen + 1):
@@ -110,7 +116,7 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
             e[i] = ENERGYFLOOR
 
     emin = numpy.ones(nfr10)
-    emin = numpy.insert(emin, 0, 'inf')
+    emin = numpy.insert(emin, 0, "inf")
     NESEG = 200
 
     if numpy.less(nfr10, NESEG):
@@ -118,25 +124,32 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
 
     for i in range(1, int(numpy.floor(nfr10 / NESEG)) + 1):
         eY = numpy.sort(e[range((i - 1) * NESEG + 1, (i * NESEG) + 1)])
-        eY = numpy.insert(eY, 0, 'inf')
+        eY = numpy.insert(eY, 0, "inf")
 
-        emin[range((i - 1) * NESEG + 1, i * NESEG + 1)] = eY[int(numpy.floor(NESEG * 0.1))]
+        emin[range((i - 1) * NESEG + 1, i * NESEG + 1)] = eY[
+            int(numpy.floor(NESEG * 0.1))
+        ]
         if numpy.not_equal(i, 1):
-            emin[range((i - 1) * NESEG + 1, i * NESEG + 1)] = 0.9 * emin[(i - 1) * NESEG] + 0.1 * emin[
-                (i - 1) * NESEG + 1]
+            emin[range((i - 1) * NESEG + 1, i * NESEG + 1)] = (
+                0.9 * emin[(i - 1) * NESEG] + 0.1 * emin[(i - 1) * NESEG + 1]
+            )
 
     if numpy.not_equal(i * NESEG, nfr10):
         eY = numpy.sort(e[range((i - 1) * NESEG + 1, nfr10 + 1)])
-        eY = numpy.insert(eY, 0, 'inf')
+        eY = numpy.insert(eY, 0, "inf")
 
-        emin[range(i * NESEG + 1, nfr10 + 1)] = eY[int(numpy.floor((nfr10 - (i - 1) * NESEG) * 0.1))]
-        emin[range(i * NESEG + 1, nfr10 + 1)] = 0.9 * emin[i * NESEG] + 0.1 * emin[i * NESEG + 1]
+        emin[range(i * NESEG + 1, nfr10 + 1)] = eY[
+            int(numpy.floor((nfr10 - (i - 1) * NESEG) * 0.1))
+        ]
+        emin[range(i * NESEG + 1, nfr10 + 1)] = (
+            0.9 * emin[i * NESEG] + 0.1 * emin[i * NESEG + 1]
+        )
 
     D = numpy.zeros(nfr10)
-    D = numpy.insert(D, 0, 'inf')
+    D = numpy.insert(D, 0, "inf")
 
     postsnr = numpy.zeros(nfr10)
-    postsnr = numpy.insert(postsnr, 0, 'inf')
+    postsnr = numpy.insert(postsnr, 0, "inf")
 
     for i in range(2, nfr10 + 1):
         postsnr[i] = numpy.log10(e[i]) - numpy.log10(emin[i])
@@ -146,12 +159,12 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
         D[i] = numpy.sqrt(numpy.abs(e[i] - e[i - 1]) * postsnr[i])
     D[1] = D[2]
 
-    tm1 = numpy.hstack((numpy.ones(Dexpl) * D[1], D[1:len(D)]))
+    tm1 = numpy.hstack((numpy.ones(Dexpl) * D[1], D[1 : len(D)]))
     Dexp = numpy.hstack((tm1, numpy.ones(Dexpr) * D[nfr10]))
-    Dexp = numpy.insert(Dexp, 0, 'inf')
+    Dexp = numpy.insert(Dexp, 0, "inf")
 
-    Dsmth = numpy.zeros(nfr10, dtype='float64')
-    Dsmth = numpy.insert(Dsmth, 0, 'inf')
+    Dsmth = numpy.zeros(nfr10, dtype="float64")
+    Dsmth = numpy.insert(Dsmth, 0, "inf")
 
     Dsmth_max = deepcopy(Dsmth)
 
@@ -160,14 +173,16 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
 
     for i in range(1, int(numpy.floor(nfr10 / NESEG)) + 1):
         Dsmth_max[range((i - 1) * NESEG + 1, i * NESEG + 1)] = numpy.amax(
-            e[range((i - 1) * NESEG + 1, i * NESEG + 1)]);  # numpy.amax(Dsmth[range((i-1)*NESEG+1, i*NESEG+1)])
+            e[range((i - 1) * NESEG + 1, i * NESEG + 1)]
+        )  # numpy.amax(Dsmth[range((i-1)*NESEG+1, i*NESEG+1)])
 
     if numpy.not_equal(i * NESEG, nfr10):
         Dsmth_max[range(i * NESEG + 1, nfr10 + 1)] = numpy.amax(
-            e[range((i - 1) * NESEG + 1, nfr10 + 1)])  # numpy.amax(Dsmth[range((i-1)*NESEG+1, nfr10+1)])
+            e[range((i - 1) * NESEG + 1, nfr10 + 1)]
+        )  # numpy.amax(Dsmth[range((i-1)*NESEG+1, nfr10+1)])
 
     snre_vad = numpy.zeros(nfr10)
-    snre_vad = numpy.insert(snre_vad, 0, 'inf')
+    snre_vad = numpy.insert(snre_vad, 0, "inf")
 
     for i in range(1, nfr10 + 1):
         if numpy.greater(Dsmth[i], Dsmth_max[i] * segThres):
@@ -175,8 +190,8 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
 
     # block based processing to remove noise part by using snre_vad1.
     sign_vad = 0
-    noise_seg = numpy.zeros(int(numpy.floor(nfr10 / 1.6)));
-    noise_seg = numpy.insert(noise_seg, 0, 'inf')
+    noise_seg = numpy.zeros(int(numpy.floor(nfr10 / 1.6)))
+    noise_seg = numpy.insert(noise_seg, 0, "inf")
 
     noise_samp = numpy.zeros((nfr10, 2))
     n_noise_samp = -1
@@ -185,19 +200,28 @@ def snre_highenergy(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk):
         if (snre_vad[i] == 1) and (sign_vad == 0):  # % start of a segment
             sign_vad = 1
             nstart = i
-        elif ((snre_vad[i] == 0) or (i == nfr10)) and (sign_vad == 1):  # % end of a segment
+        elif ((snre_vad[i] == 0) or (i == nfr10)) and (
+            sign_vad == 1
+        ):  # % end of a segment
             sign_vad = 0
             nstop = i - 1
             if numpy.equal(sum(pv01_[range(nstart, nstop + 1)]), 0):
-                noise_seg[range(int(numpy.round(nstart / 1.6)), int(numpy.floor(nstop / 1.6)) + 1)] = 1
+                noise_seg[
+                    range(
+                        int(numpy.round(nstart / 1.6)),
+                        int(numpy.floor(nstop / 1.6)) + 1,
+                    )
+                ] = 1
                 n_noise_samp = n_noise_samp + 1
-                noise_samp[n_noise_samp, :] = numpy.array([(nstart - 1) * fsh10 + 1, nstop * fsh10])
+                noise_samp[n_noise_samp, :] = numpy.array(
+                    [(nstart - 1) * fsh10 + 1, nstop * fsh10]
+                )
 
-    noise_samp = noise_samp[:n_noise_samp + 1, ]
+    noise_samp = noise_samp[: n_noise_samp + 1,]
 
     # syn  from [0] index
     noise_samp = noise_samp - 1
-    noise_seg = noise_seg[1:len(noise_seg)]
+    noise_seg = noise_seg[1 : len(noise_seg)]
 
     return noise_samp, noise_seg, len(noise_samp)
 
@@ -207,20 +231,20 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
     # here [0] index array element has  not used
 
     Dexpl, Dexpr = 18, 18
-    Dsmth = numpy.zeros(nfr10, dtype='float64');
-    Dsmth = numpy.insert(Dsmth, 0, 'inf')
+    Dsmth = numpy.zeros(nfr10, dtype="float64")
+    Dsmth = numpy.insert(Dsmth, 0, "inf")
 
     fdata_ = deepcopy(fdata)
     pv01_ = deepcopy(pv01)
     pvblk_ = deepcopy(pvblk)
 
-    fdata_ = numpy.insert(fdata_, 0, 'inf')
-    pv01_ = numpy.insert(pv01_, 0, 'inf')
-    pvblk_ = numpy.insert(pvblk_, 0, 'inf')
+    fdata_ = numpy.insert(fdata_, 0, "inf")
+    pv01_ = numpy.insert(pv01_, 0, "inf")
+    pvblk_ = numpy.insert(pvblk_, 0, "inf")
 
     # energy estimation
-    e = numpy.zeros(nfr10, dtype='float64')
-    e = numpy.insert(e, 0, 'inf')
+    e = numpy.zeros(nfr10, dtype="float64")
+    e = numpy.insert(e, 0, "inf")
 
     for i in range(1, nfr10 + 1):
         for j in range(1, flen + 1):
@@ -229,34 +253,36 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
         if numpy.less_equal(e[i], ENERGYFLOOR):
             e[i] = ENERGYFLOOR
 
-    segsnr = numpy.zeros(nfr10);
-    segsnr = numpy.insert(segsnr, 0, 'inf')
+    segsnr = numpy.zeros(nfr10)
+    segsnr = numpy.insert(segsnr, 0, "inf")
     segsnrsmth = 1
     sign_segsnr = 0
-    D = numpy.zeros(nfr10);
-    D = numpy.insert(D, 0, 'inf')
-    postsnr = numpy.zeros(nfr10, dtype='float64');
-    postsnr = numpy.insert(postsnr, 0, 'inf')
-    snre_vad = numpy.zeros(nfr10);
-    snre_vad = numpy.insert(snre_vad, 0, 'inf')
+    D = numpy.zeros(nfr10)
+    D = numpy.insert(D, 0, "inf")
+    postsnr = numpy.zeros(nfr10, dtype="float64")
+    postsnr = numpy.insert(postsnr, 0, "inf")
+    snre_vad = numpy.zeros(nfr10)
+    snre_vad = numpy.insert(snre_vad, 0, "inf")
     sign_pv = 0
 
     for i in range(1, nfr10 + 1):
-
         if (pvblk_[i] == 1) and (sign_pv == 0):
             nstart = i
             sign_pv = 1
 
         elif ((pvblk_[i] == 0) or (i == nfr10)) and (sign_pv == 1):
-
             nstop = i - 1
             if i == nfr10:
                 nstop = i
             sign_pv = 0
-            datai = fdata_[range((nstart - 1) * fsh10 + 1, (nstop - 1) * fsh10 + flen - fsh10 + 1)]
-            datai = numpy.insert(datai, 0, 'inf')
+            datai = fdata_[
+                range((nstart - 1) * fsh10 + 1, (nstop - 1) * fsh10 + flen - fsh10 + 1)
+            ]
+            datai = numpy.insert(datai, 0, "inf")
 
-            for j in range(nstart, nstop - 1 + 1):  # previously it was for j=nstart:nstop-1
+            for j in range(
+                nstart, nstop - 1 + 1
+            ):  # previously it was for j=nstart:nstop-1
                 for h in range(1, flen + 1):
                     e[j] = e[j] + numpy.square(datai[(j - nstart) * fsh10 + h])
                 if numpy.less_equal(e[j], ENERGYFLOOR):
@@ -265,12 +291,11 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
             e[nstop] = e[nstop - 1]
 
             eY = numpy.sort(e[range(nstart, nstop + 1)])
-            eY = numpy.insert(eY, 0, 'inf')  # as [0] is discarding
+            eY = numpy.insert(eY, 0, "inf")  # as [0] is discarding
 
             emin = eY[int(numpy.floor((nstop - nstart + 1) * 0.1))]
 
             for j in range(nstart + 1, nstop + 1):
-
                 postsnr[j] = math.log10(e[j]) - math.log10(emin)
 
                 if numpy.less(postsnr[j], 0):
@@ -280,16 +305,19 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
 
             D[nstart] = D[nstart + 1]
 
-            tm1 = numpy.hstack((numpy.ones(Dexpl) * D[nstart], D[range(nstart, nstop + 1)]))
+            tm1 = numpy.hstack(
+                (numpy.ones(Dexpl) * D[nstart], D[range(nstart, nstop + 1)])
+            )
             Dexp = numpy.hstack((tm1, numpy.ones(Dexpr) * D[nstop]))
 
-            Dexp = numpy.insert(Dexp, 0, 'inf')
+            Dexp = numpy.insert(Dexp, 0, "inf")
 
             for j in range(0, nstop - nstart + 1):
                 Dsmth[nstart + j] = sum(Dexp[range(j + 1, j + Dexpl + Dexpr + 1)])
 
-            Dsmth_thres = sum(Dsmth[range(nstart, nstop + 1)] * pv01_[range(nstart, nstop + 1)]) / sum(
-                pv01_[range(nstart, nstop + 1)])
+            Dsmth_thres = sum(
+                Dsmth[range(nstart, nstop + 1)] * pv01_[range(nstart, nstop + 1)]
+            ) / sum(pv01_[range(nstart, nstop + 1)])
 
             for j in range(nstart, nstop + 1):
                 if numpy.greater(Dsmth[j], Dsmth_thres * vadThres):
@@ -299,7 +327,9 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
     pv_vad = deepcopy(snre_vad)
 
     nexpl = 33
-    nexpr = 47  # % 29 and 39, estimated statistically, 95% ; 33, 47 %98 for voicebox pitch
+    nexpr = (
+        47  # % 29 and 39, estimated statistically, 95% ; 33, 47 %98 for voicebox pitch
+    )
     sign_vad = 0
     for i in range(1, nfr10 + 1):
         if (snre_vad[i] == 1) and (sign_vad == 0):
@@ -322,7 +352,7 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
 
             pv_vad[range(nstop - j + 1 + nexpr, nstop + 1)] = 0
 
-    nexpl = 5;
+    nexpl = 5
     nexpr = 12  # ; % 9 and 13, estimated statistically 5%; 5, 12 %2 for voicebox pitch
     sign_vad = 0
     for i in range(1, nfr10 + 1):
@@ -369,7 +399,7 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
     #
     eps = numpy.finfo(float).eps
 
-    eave = esum / (sum(pv_vad[1:len(pv_vad)]) + eps)  # except [0] index 'inf'
+    eave = esum / (sum(pv_vad[1 : len(pv_vad)]) + eps)  # except [0] index 'inf'
 
     sign_vad = 0
     for i in range(1, nfr10 + 1):
@@ -400,7 +430,7 @@ def snre_vad(fdata, nfr10, flen, fsh10, ENERGYFLOOR, pv01, pvblk, vadThres):
             # print i, n_vad_seg, nstart, nstop
             vad_seg[n_vad_seg, :] = numpy.array([nstart, nstop])
 
-    vad_seg = vad_seg[:n_vad_seg + 1, ]
+    vad_seg = vad_seg[: n_vad_seg + 1,]
 
     # syn  from [0] index
     vad_seg = vad_seg - 1
@@ -426,13 +456,10 @@ def pitchblockdetect(pv01, pitch, nfr10, opts):
     if opts == 0:
         sign_pv = 0
         for i in range(0, nfr10):
-
             if (pv01_[i] == 1) and (sign_pv == 0):
-
                 nstart, sign_pv = i, 1
 
             elif ((pv01_[i] == 0) or (i == nfr10 - 1)) and (sign_pv == 1):
-
                 nstop = i
                 if i == nfr10 - 1:
                     nstop = i + 1
@@ -440,10 +467,11 @@ def pitchblockdetect(pv01, pitch, nfr10, opts):
                 pitchseg = numpy.zeros(nstop - nstart)
                 # print len(pitchseg)
                 for j in range(nstart, nstop):
-                    pitchseg[j - nstart] = pitch[j];
+                    pitchseg[j - nstart] = pitch[j]
 
-                if (sum(numpy.abs(numpy.round(pitchseg - numpy.average(pitchseg)))) == 0) and (
-                        nstop - nstart + 1 >= 10):
+                if (
+                    sum(numpy.abs(numpy.round(pitchseg - numpy.average(pitchseg)))) == 0
+                ) and (nstop - nstart + 1 >= 10):
                     pv01_[range(nstart, nstop)] = 0
                     #
     sign_pv = 0
@@ -451,7 +479,6 @@ def pitchblockdetect(pv01, pitch, nfr10, opts):
 
     # print i
     for i in range(0, nfr10):
-
         if (pv01_[i] == 1) and (sign_pv == 0):
             # print("i=%s " %(i))
             nstart, sign_pv = i, 1
@@ -459,11 +486,9 @@ def pitchblockdetect(pv01, pitch, nfr10, opts):
             # print("fm P2: i=%s %s % " %(i,max([nstart-60,0]), nstart+1))
 
         elif ((pv01_[i] == 0) or (i == nfr10 - 1)) and (sign_pv == 1):
-
             nstop, sign_pv = i, 0
 
             pvblk[range(nstop, numpy.amin([nstop + 60, nfr10 - 1]) + 1)] = 1
             # print("fm P2: i=%s %s %s " %(i,nstop, numpy.amin([nstop+60,nfr10-1])+1 ))
 
     return pvblk
-

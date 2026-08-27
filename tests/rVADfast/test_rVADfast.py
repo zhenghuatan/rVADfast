@@ -5,7 +5,9 @@ from rVADfast import rVADfast
 
 def test_rvadfast_returns_frame_labels_and_timestamps():
     sampling_rate = 1000
-    sine_wave_signal = np.sin(2 * np.pi * 100 * np.arange(sampling_rate) / sampling_rate)
+    sine_wave_signal = np.sin(
+        2 * np.pi * 100 * np.arange(sampling_rate) / sampling_rate
+    )
 
     labels, timestamps = rVADfast()(sine_wave_signal, sampling_rate)
 
