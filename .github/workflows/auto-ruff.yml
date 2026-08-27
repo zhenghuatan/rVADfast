@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+      with:
+        # Prevents checkout from leaving the auth header in the git config
+        persist-credentials: false
       
     - name: Install uv and set python version
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
@@ -31,7 +34,7 @@ jobs:
         uv run ruff format .
         
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v8
       with:
         commit-message: "style: auto-fix and format with ruff"
         title: "style: apply ruff auto-formatting"
