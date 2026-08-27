@@ -15,18 +15,27 @@ VAD_THRESHOLD = 0.4
 
 
 def test_snre_vad_detects_voiced_regions():
-    signal = np.concatenate((
-        np.zeros(400),
-        np.ones(500),
-        np.zeros(300),
-        np.ones(800),
-    ))
+    signal = np.concatenate(
+        (
+            np.zeros(400),
+            np.ones(500),
+            np.zeros(300),
+            np.ones(800),
+        )
+    )
     pitch_voiced = np.zeros(N_FRAMES, dtype=bool)
     pitch_voiced[20:45] = True
     pitch_voiced[60:90] = True
 
-    result = speechproc.snre_vad(signal, N_FRAMES, FRAME_LENGTH, FRAME_SHIFT,
-                                 ENERGY_FLOOR, pitch_voiced, VAD_THRESHOLD)
+    result = speechproc.snre_vad(
+        signal,
+        N_FRAMES,
+        FRAME_LENGTH,
+        FRAME_SHIFT,
+        ENERGY_FLOOR,
+        pitch_voiced,
+        VAD_THRESHOLD,
+    )
 
     expected = np.ones(N_FRAMES, dtype=np.int64)
     # The first energy transition occurs after frame 1.
@@ -41,8 +50,9 @@ def test_snre_vad_detects_voiced_regions():
 def test_snre_vad_handles_short_and_unvoiced_input():
     signal = np.ones(25)
 
-    result = speechproc.snre_vad(signal, 1, FRAME_LENGTH, 10, ENERGY_FLOOR,
-                                 np.array([False]), VAD_THRESHOLD)
+    result = speechproc.snre_vad(
+        signal, 1, FRAME_LENGTH, 10, ENERGY_FLOOR, np.array([False]), VAD_THRESHOLD
+    )
 
     assert np.array_equal(result, np.array([0]))
 
@@ -70,7 +80,7 @@ def test_spectral_and_segment_utilities():
 
     signal = np.arange(1, 11, dtype=float)
     assert speechproc.sflux(signal, 4, 3, 8).shape == (3,)
-    energy = np.array([1., 2., 3., 4., 5., 6.])
+    energy = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     assert np.array_equal(speechproc.segmentwise_percentile(energy, 3), [1.2, 4.2])
     assert np.array_equal(
         speechproc.segmentwise_exponential_smooth(energy, 3),
@@ -79,8 +89,14 @@ def test_spectral_and_segment_utilities():
     assert np.array_equal(speechproc.segmentwise_max(energy, 3), [3, 3, 3, 6, 6, 6])
     assert np.allclose(speechproc.compute_posteriori_snr([10, 100], [1, 10]), [10, 10])
     assert np.allclose(
-        speechproc.compute_snr_weighted_energy_diff(np.array([1., 5., 14.]), np.ones(3)),
-        [np.sqrt(90 * np.log10(14)), np.sqrt(40 * np.log10(5)), np.sqrt(90 * np.log10(14))],
+        speechproc.compute_snr_weighted_energy_diff(
+            np.array([1.0, 5.0, 14.0]), np.ones(3)
+        ),
+        [
+            np.sqrt(90 * np.log10(14)),
+            np.sqrt(40 * np.log10(5)),
+            np.sqrt(90 * np.log10(14)),
+        ],
     )
 
 
@@ -92,22 +108,26 @@ def test_pitch_and_high_energy_utilities():
     )
     signal = np.r_[np.zeros(50), np.ones(50), np.zeros(50)]
     result = speechproc.snre_highenergy(
-        signal, n_frames=14, frame_length=25, frame_shift=10,
-        energy_floor=ENERGY_FLOOR, pitch_voiced=np.zeros(14, dtype=bool),
+        signal,
+        n_frames=14,
+        frame_length=25,
+        frame_shift=10,
+        energy_floor=ENERGY_FLOOR,
+        pitch_voiced=np.zeros(14, dtype=bool),
     )
     assert result.dtype == bool
     assert result.shape == (14,)
 
-@pytest.mark.filterwarnings(
-    "ignore:numpy\\.fix is deprecated.*:DeprecationWarning"
-)
+
+@pytest.mark.filterwarnings("ignore:numpy\\.fix is deprecated.*:DeprecationWarning")
 @pytest.mark.filterwarnings(
     "ignore:the matrix subclass is not the recommended way.*:PendingDeprecationWarning"
 )
 def test_core_signal_features_match_legacy_algorithm():
     """Check shared framing, flatness, and pitch-block computations against legacy code."""
     repository_root = next(
-        parent for parent in Path(__file__).resolve().parents
+        parent
+        for parent in Path(__file__).resolve().parents
         if (parent / "pyproject.toml").is_file()
     )
     legacy_path = repository_root / "src/rVADfast/legacy_files/speechproc.py"
@@ -126,5 +146,7 @@ def test_core_signal_features_match_legacy_algorithm():
     assert np.allclose(modern_flux, legacy_flux)
     assert np.array_equal(
         speechproc.pitch_block_detect(pitch_voiced, len(pitch_voiced)),
-        legacy.pitchblockdetect(pitch_voiced, np.zeros(len(pitch_voiced)), len(pitch_voiced), 1),
+        legacy.pitchblockdetect(
+            pitch_voiced, np.zeros(len(pitch_voiced)), len(pitch_voiced), 1
+        ),
     )

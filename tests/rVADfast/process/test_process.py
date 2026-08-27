@@ -46,7 +46,9 @@ def test_worker_function_writes_labels_and_trimmed_audio(tmp_path, monkeypatch):
     label_path = tmp_path / "labels" / "input.wav_vad.txt"
     assert label_path.exists()
 
-    process.worker_function(input_path, tmp_path / "trimmed", tmp_path, Vad(), trim_non_speech=True)
+    process.worker_function(
+        input_path, tmp_path / "trimmed", tmp_path, Vad(), trim_non_speech=True
+    )
     assert writes[0][0] == tmp_path / "trimmed" / "input.wav"
     assert np.array_equal(writes[0][1], np.arange(2))
     assert writes[0][2] == 10
@@ -57,7 +59,10 @@ def test_batch_processors_and_cli_dispatch(tmp_path, monkeypatch):
     input_path.parent.mkdir()
     input_path.touch()
     calls = []
-    monkeypatch.setattr(process, "worker_function", lambda *args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.setattr(
+        process, "worker_function", lambda *args, **kwargs: calls.append((args, kwargs))
+    )
+
     class Progress:
         def __init__(self, iterable=None, **_):
             self.iterable = iterable
@@ -97,6 +102,8 @@ def test_batch_processors_and_cli_dispatch(tmp_path, monkeypatch):
     assert len(calls) == 2
 
     dispatched = []
-    monkeypatch.setattr(process, "rVADfast_single_process", lambda **kwargs: dispatched.append(kwargs))
+    monkeypatch.setattr(
+        process, "rVADfast_single_process", lambda **kwargs: dispatched.append(kwargs)
+    )
     process.main(["rVADfast_process", "--root", str(tmp_path), "--n_workers", "0"])
     assert dispatched[0]["root_folder"] == str(tmp_path)
