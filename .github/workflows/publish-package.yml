@@ -23,15 +23,31 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: Bump minor version in pyproject.toml
+    - name: Bump version in pyproject.toml
       id: bump
+      env:
+        COMMIT_MSG: ${{ github.event.head_commit.message }}
       run: |
         NEW_VERSION=$(python -c '
-        import re
+        import re, os
+        msg = os.environ.get("COMMIT_MSG", "").lower()
+        
         with open("pyproject.toml", "r") as f: c = f.read()
         m = re.search(r"version\s*=\s*\"(\d+)\.(\d+)\.(\d+)\"", c)
-        major, minor, patch = m.groups()
-        new_version = f"{major}.{int(minor)+1}.0"
+        major, minor, patch = map(int, m.groups())
+        
+        if "[major]" in msg:
+            major += 1
+            minor = 0
+            patch = 0
+        elif "[patch]" in msg:
+            patch += 1
+        else:
+            # Default behavior
+            minor += 1
+            patch = 0
+            
+        new_version = f"{major}.{minor}.{patch}"
         c = c[:m.start()] + f"version = \"{new_version}\"" + c[m.end():]
         with open("pyproject.toml", "w") as f: f.write(c)
         print(new_version)
