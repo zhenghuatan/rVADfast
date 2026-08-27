@@ -1,24 +1,70 @@
-name: Publish to PyPI
+name: Bump and Publish
 
 on:
   push:
     branches: [ "master" ]
 
 jobs:
-  build-and-publish:
+  bump-version:
+    if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ steps.bump.outputs.version }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 
+        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Bump minor version in pyproject.toml
+      id: bump
+      run: |
+        NEW_VERSION=$(python -c '
+        import re
+        with open("pyproject.toml", "r") as f: c = f.read()
+        m = re.search(r"version\s*=\s*\"(\d+)\.(\d+)\.(\d+)\"", c)
+        major, minor, patch = m.groups()
+        new_version = f"{major}.{int(minor)+1}.0"
+        c = c[:m.start()] + f"version = \"{new_version}\"" + c[m.end():]
+        with open("pyproject.toml", "w") as f: f.write(c)
+        print(new_version)
+        ')
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add pyproject.toml
+        git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+        git tag "v${{ steps.bump.outputs.version }}"
+        git push origin master --tags
+
+  publish:
+    needs: bump-version
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/rVADfast
     permissions:
-      id-token: write  # Required for PyPI Trusted Publishing (OIDC)
+      id-token: write
       contents: read
 
     steps:
-    - uses: actions/checkout@v7
+    # Notice we checkout the NEW tag created in the previous job
+    - uses: actions/checkout@v4
+      with:
+        ref: "v${{ needs.bump-version.outputs.new_version }}"
 
     - name: Install uv and set Python version
-      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
       with:
         python-version: "3.12"
         enable-cache: true
